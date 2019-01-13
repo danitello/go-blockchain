@@ -13,7 +13,9 @@ import (
 	"github.com/danitello/go-blockchain/core/util"
 )
 
-/*InitProof creates a new proof for the given Block
+//TODO: look into using interfaces
+
+/*InitProof creates a new proof for the given Block, adding it's Hash and Nonce metadata
 @param Block - the Block for which a proof must be determined
 */
 func InitProof(b *types.Block) {
@@ -39,7 +41,8 @@ func InitProof(b *types.Block) {
 	fmt.Println()
 }
 
-/*ValidateProof confirms that a given Block has been signed correctly
+/*ValidateProof confirms that a given Block has been signed correctly and thus is a valid Block in the BlockChain
+using the Nonce that has been computed for it
 @param b - the Block in question
 @return whether the Block has been signed correctly or not
 */
