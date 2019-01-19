@@ -21,6 +21,5 @@ type Block struct {
 @return a new Block
 */
 func InitBlock(data string, prevHash []byte) *Block {
-	newBlock := &Block{[]byte{}, []byte(data), prevHash, 0, 12}
-	return newBlock
+	return &Block{[]byte{}, []byte(data), prevHash, 0, 12}
 }
