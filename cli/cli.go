@@ -6,7 +6,6 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/danitello/go-blockchain/consensus"
 	"github.com/danitello/go-blockchain/core"
 )
 
@@ -52,18 +51,13 @@ func (cl *CommandLine) Run() {
 	// Check for and evaluate used commands
 	if addCommand.Parsed() {
 		// 'add' requires a subcommand
-		if len(addCommand.Args()) == 0 || addCommand.Arg(0) == "help" {
-			addCommand.PrintDefaults()
-			runtime.Goexit()
-		} else if addCommand.Arg(0) == "block" { // want to add a block
-			// Make sure the required input was submitted
-			if *addCommandData == "" {
-				addCommand.PrintDefaults()
-				fmt.Println()
-				runtime.Goexit() // Give badgerdb time to garbage collect
-			}
-			cl.addBlock(*addCommandData)
+		// Make sure the required input was submitted
+		if *addCommandData == "" {
+			addCommand.Usage()
+			fmt.Println()
+			runtime.Goexit() // Give badgerdb time to garbage collect
 		}
+		cl.addBlock(*addCommandData)
 	}
 
 	if helpCommand.Parsed() {
@@ -95,7 +89,7 @@ func (cl *CommandLine) printChain() {
 		//fmt.Printf("Prev Hash: %x\n", block.PrevHash)
 		fmt.Printf("Data: %s\n", currBlock.Data)
 		fmt.Printf("Hash: %x\n", currBlock.Hash)
-		fmt.Println("Verified:", consensus.ValidateProof(currBlock))
+		fmt.Println("Verified:", currBlock.ValidateProof())
 		//fmt.Println(block.Nonce)
 		fmt.Println()
 
@@ -113,6 +107,6 @@ func printHelp() {
 	fmt.Println("where <command> is one of:")
 	fmt.Println("\tadd, help, print")
 	fmt.Println()
-	//fmt.Println("./main.go <command> -h\t\tquick help on <command>")
+	//fmt.Println("./main.go <command> h\t\tquick help on <command>")
 
 }

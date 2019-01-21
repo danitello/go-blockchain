@@ -3,10 +3,10 @@ package core
 import (
 	"fmt"
 
-	"github.com/danitello/go-blockchain/chainDB"
-	"github.com/danitello/go-blockchain/consensus"
+	"github.com/danitello/go-blockchain/chaindb"
+	"github.com/danitello/go-blockchain/chaindb/dbutil"
+	"github.com/danitello/go-blockchain/common/errutil"
 	"github.com/danitello/go-blockchain/core/types"
-	"github.com/danitello/go-blockchain/core/util"
 
 	"github.com/dgraph-io/badger"
 )
@@ -30,36 +30,12 @@ type BlockChain struct {
 @param data - the data to be contained in the Block
 */
 func (bc *BlockChain) AddBlock(data string) {
-	var lastHash []byte
-
 	// Get hash of most recent Block in the chain
-	err := bc.DB.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(chainDB.LastHashKey))
-		util.HandleErr(err)
+	lastHash := bc.getLastHash()
 
-		lastHash, err = item.Value()
-
-		return err
-	})
-	util.HandleErr(err)
-
-	// Create a new block, save the new Block to db, and save new most recent hash in db
+	// Create a new block and save it
 	newBlock := types.InitBlock(data, lastHash)
-	consensus.InitProof(newBlock)
-	fmt.Println("New block signed")
-
-	err = bc.DB.Update(func(txn *badger.Txn) error {
-		err = txn.Set(newBlock.Hash, util.SerializeBlock(newBlock))
-		util.HandleErr(err)
-		err = txn.Set([]byte(chainDB.LastHashKey), newBlock.Hash)
-
-		// Update chain
-		bc.LastHash = newBlock.Hash
-
-		return err
-	})
-
-	util.HandleErr(err)
+	bc.saveNewLastBlock(newBlock)
 }
 
 /*InitBlockChain instantiates a new instance of a BlockChain
@@ -67,28 +43,55 @@ func (bc *BlockChain) AddBlock(data string) {
 */
 func InitBlockChain() *BlockChain {
 	var lastHash []byte
-	db := chainDB.InitDB()
+	db := chaindb.InitDB()
+
+	// if chaindb.HasChain(db) {
+	// 	// CHANGE THIS WHEN DB WRAPPED
+	// 	err := db.View(func(txn *badger.Txn) error {
+	// 		item, err := txn.Get([]byte(chaindb.LastHashKey))
+	// 		errutil.HandleErr(err)
+
+	// 		lastHash, err = item.Value()
+
+	// 		return err
+	// 	})
+	// 	errutil.HandleErr(err)
+	// } else {
+	// 	fmt.Println("H222")
+	// 	fmt.Println("No existing BlockChain found in", chaindb.Dir)
+	// 	genesisBlock := createGenesisBlock()
+	// 	fmt.Println("Genesis block signed")
+
+	// 	err := db.Update(func(txn *badger.Txn) error {
+	// 		err := txn.Set([]byte(chaindb.LastHashKey), genesisBlock.Hash)
+	// 		lastHash = genesisBlock.Hash
+	// 		errutil.HandleErr(err)
+	// 		err = txn.Set(genesisBlock.Hash, dbutil.SerializeBlock(genesisBlock))
+	// 		return err
+	// 	})
+	// 	errutil.HandleErr(err)
+	// }
 
 	// If no data exists in the tmp/blocks directory, create a BlockChain
 	// else get that BlockChain
 	err := db.Update(func(txn *badger.Txn) error {
-		if _, err := txn.Get([]byte(chainDB.LastHashKey)); err == badger.ErrKeyNotFound {
-			fmt.Println("No existing BlockChain found in", chainDB.Dir)
-			genesisBlock := genesis()
+		if _, err := txn.Get([]byte(chaindb.LastHashKey)); err == badger.ErrKeyNotFound {
+			fmt.Println("No existing BlockChain found in", chaindb.Dir)
+			genesisBlock := createGenesisBlock()
 			fmt.Println("Genesis block signed")
 
 			// Save genesis block
-			err = txn.Set([]byte(chainDB.LastHashKey), genesisBlock.Hash)
-			util.HandleErr(err)
-			err = txn.Set(genesisBlock.Hash, util.SerializeBlock(genesisBlock))
+			err = txn.Set([]byte(chaindb.LastHashKey), genesisBlock.Hash)
+			errutil.HandleErr(err)
+			err = txn.Set(genesisBlock.Hash, dbutil.SerializeBlock(genesisBlock))
 
 			lastHash = genesisBlock.Hash
 
 			return err
 		}
 
-		item, err := txn.Get([]byte(chainDB.LastHashKey))
-		util.HandleErr(err)
+		item, err := txn.Get([]byte(chaindb.LastHashKey))
+		errutil.HandleErr(err)
 
 		lastHash, err = item.Value()
 
@@ -96,20 +99,50 @@ func InitBlockChain() *BlockChain {
 
 	})
 
-	util.HandleErr(err)
+	errutil.HandleErr(err)
 	newChain := &BlockChain{lastHash, db}
 
 	return newChain
+
 }
 
-/*genesis creates a genesis Block
+/*getLastHash gets the hash of the most recent Block in the chain
+@return - the hash
+*/
+func (bc *BlockChain) getLastHash() []byte {
+	var lastHash []byte
+	err := bc.DB.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(chaindb.LastHashKey))
+		errutil.HandleErr(err)
+
+		lastHash, err = item.Value()
+
+		return err
+	})
+	errutil.HandleErr(err)
+
+	return lastHash
+}
+
+/*saveNewLastBlock saves the new Block to db, and the new most recent hash in db */
+func (bc *BlockChain) saveNewLastBlock(newBlock *types.Block) {
+	err := bc.DB.Update(func(txn *badger.Txn) error {
+		err := txn.Set(newBlock.Hash, dbutil.SerializeBlock(newBlock))
+		errutil.HandleErr(err)
+		err = txn.Set([]byte(chaindb.LastHashKey), newBlock.Hash)
+
+		// Update chain
+		bc.LastHash = newBlock.Hash
+
+		return err
+	})
+
+	errutil.HandleErr(err)
+}
+
+/*createGenesisBlock creates a genesis Block
 @return the Block
 */
-func genesis() *types.Block {
-	genesisBlock := types.InitBlock(genesisData, []byte{}) // prevHash empty
-
-	// Generate nonce and hash for the new block
-	consensus.InitProof(genesisBlock)
-
-	return genesisBlock
+func createGenesisBlock() *types.Block {
+	return types.InitBlock(genesisData, []byte{}) // prevHash empty
 }

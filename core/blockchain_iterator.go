@@ -3,8 +3,9 @@ package core
 import (
 	"fmt"
 
+	"github.com/danitello/go-blockchain/chaindb/dbutil"
+	"github.com/danitello/go-blockchain/common/errutil"
 	"github.com/danitello/go-blockchain/core/types"
-	"github.com/danitello/go-blockchain/core/util"
 	"github.com/dgraph-io/badger"
 )
 
@@ -34,14 +35,14 @@ func (iter *BlockChainIterator) Next() (resBlock *types.Block) {
 	// Get the Block represented by the CurrentHash
 	err := iter.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(iter.currentHash))
-		util.HandleErr(err)
+		errutil.HandleErr(err)
 
 		value, err := item.Value()
-		resBlock = util.DeserializeBlock(value)
+		resBlock = dbutil.DeserializeBlock(value)
 
 		return err
 	})
-	util.HandleErr(err)
+	errutil.HandleErr(err)
 
 	// Update iterator
 	iter.currentHash = resBlock.PrevHash
@@ -63,9 +64,9 @@ func (bc *BlockChain) Iterate() error {
 			item := it.Item()
 			//k := item.Key()
 			value, err := item.Value()
-			fmt.Printf("%x %s", util.DeserializeBlock(value).Hash, util.DeserializeBlock(value).Data)
+			fmt.Printf("%x %s", dbutil.DeserializeBlock(value).Hash, dbutil.DeserializeBlock(value).Data)
 			fmt.Println()
-			util.HandleErr(err)
+			errutil.HandleErr(err)
 		}
 		return nil
 	})

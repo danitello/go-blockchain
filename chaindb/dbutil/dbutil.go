@@ -1,10 +1,10 @@
-package util
+package dbutil
 
 import (
 	"bytes"
 	"encoding/gob"
-	"log"
 
+	"github.com/danitello/go-blockchain/common/errutil"
 	"github.com/danitello/go-blockchain/core/types"
 )
 
@@ -17,7 +17,7 @@ func SerializeBlock(b *types.Block) []byte {
 
 	encoder := gob.NewEncoder(&result)
 	err := encoder.Encode(b)
-	HandleErr(err)
+	errutil.HandleErr(err)
 
 	return result.Bytes()
 }
@@ -31,16 +31,7 @@ func DeserializeBlock(data []byte) *types.Block {
 
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 	err := decoder.Decode(&block)
-	HandleErr(err)
+	errutil.HandleErr(err)
 
 	return &block
-}
-
-/*HandleErr displays errors to terminal
-@param err - the error in question
-*/
-func HandleErr(err error) {
-	if err != nil {
-		log.Panic(err)
-	}
 }
