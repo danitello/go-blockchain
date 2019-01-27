@@ -13,7 +13,7 @@ func main() {
 
 	// Get BlockChain
 	chain := core.InitBlockChain()
-	defer chain.DB.Close()
+	defer chain.ChainDB.CloseDB()
 
 	// Start CLI
 	cl := cli.CommandLine{BC: chain}

@@ -36,9 +36,7 @@ func InitBlock(data string, prevHash []byte) *Block {
 	return newBlock
 }
 
-/*runProof creates a new proof for the given Block, adding it's Hash and Nonce metadata
-@param Block - the Block for which a proof must be determined
-*/
+/*runProof creates a new proof for the given Block, adding it's Hash and Nonce metadata */
 func (b *Block) runProof() {
 	target := new(big.Int).Lsh(big.NewInt(1), uint(256-b.difficulty)) // Left shift, 256 is number of bits in a hash
 	var hash [32]byte
@@ -62,7 +60,6 @@ func (b *Block) runProof() {
 
 /*ValidateProof confirms that a given Block has been signed correctly and thus is a valid Block in the BlockChain
 using the Nonce that has been computed for it
-@param b - the Block in question
 @return whether the Block has been signed correctly or not
 */
 func (b *Block) ValidateProof() bool {
@@ -74,7 +71,7 @@ func (b *Block) ValidateProof() bool {
 	return bigIntHash.Cmp(target) == -1
 }
 
-/*getHash calculates the Hash for the given Block
+/*computeHash calculates the Hash for the given Block
 @param print - whether to print outputs
 @return *[32]byte version of hash
 @return *big.Int version of hash
@@ -92,7 +89,6 @@ func (b *Block) computeHash(print bool) ([32]byte, big.Int) {
 }
 
 /*compileProofData creates the comprehensive data slice that will be hashed during the POW
-@param b - the Block in question
 @return a [][]byte containing the final data
 */
 func (b *Block) compileProofData() []byte {
