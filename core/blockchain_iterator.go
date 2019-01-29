@@ -34,27 +34,3 @@ func (iter *BlockChainIterator) Next() (resBlock *types.Block) {
 
 	return
 }
-
-/*Iterate and print the chain using badgerDB built in iterator -wip
-@param bc - the BlockChain in question
-@return error encountered
-*/
-// func (bc *BlockChain) Iterate() error {
-// 	err := bc.DB.View(func(txn *badger.Txn) error {
-// 		opts := badger.DefaultIteratorOptions
-// 		opts.PrefetchSize = 10
-// 		it := txn.NewIterator(opts)
-// 		defer it.Close()
-// 		for it.Rewind(); it.Valid(); it.Next() {
-// 			item := it.Item()
-// 			//k := item.Key()
-// 			value, err := item.Value()
-// 			fmt.Printf("%x %s", dbutil.DeserializeBlock(value).Hash, dbutil.DeserializeBlock(value).Data)
-// 			fmt.Println()
-// 			errutil.HandleErr(err)
-// 		}
-// 		return nil
-// 	})
-
-// 	return err
-// }

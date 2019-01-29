@@ -86,11 +86,12 @@ func (cl *CommandLine) printChain() {
 	for {
 		currBlock := iter.Next()
 
-		//fmt.Printf("Prev Hash: %x\n", block.PrevHash)
+		fmt.Printf("Block\t %d\n", currBlock.Index)
+		fmt.Println("----------")
 		fmt.Printf("Data: %s\n", currBlock.Data)
 		fmt.Printf("Hash: %x\n", currBlock.Hash)
+		fmt.Printf("Time: %s\n", currBlock.TimeStamp)
 		fmt.Println("Verified:", currBlock.ValidateProof())
-		//fmt.Println(block.Nonce)
 		fmt.Println()
 
 		// Reached the beginning of the chain

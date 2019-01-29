@@ -52,14 +52,13 @@ func (db *ChainDB) HasChain() (exists bool) {
 		return nil
 	})
 	errutil.HandleErr(err)
-	return exists
+	return
 }
 
 /*GetLastHash gets the hash of the most recent Block in the database
 @return - the hash
 */
 func (db *ChainDB) GetLastHash() (lastHash []byte) {
-
 	err := db.database.View(func(txn *badger.Txn) (err error) {
 		item, err := txn.Get([]byte(LastHashKey))
 		errutil.HandleErr(err)
@@ -78,7 +77,6 @@ func (db *ChainDB) GetLastHash() (lastHash []byte) {
 @return - the Block
 */
 func (db *ChainDB) GetBlockWithHash(hash []byte) (resBlock *types.Block) {
-	resBlock = nil
 	err := db.database.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(hash))
 		errutil.HandleErr(err)

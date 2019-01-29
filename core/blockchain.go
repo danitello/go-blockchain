@@ -13,10 +13,12 @@ const (
 )
 
 /*BlockChain is a complete blockchain
+@param Height - how many Blocks it has (highest Index + 1)
 @param LastHash - the hash of the most recent Block added to this BlockChain
 @param DB - a badger database instance
 */
 type BlockChain struct {
+	Height   int
 	LastHash []byte
 	ChainDB  *chaindb.ChainDB
 }
@@ -24,20 +26,24 @@ type BlockChain struct {
 /*InitBlockChain instantiates a new instance of a BlockChain
 @return the current working BlockChain
 */
-func InitBlockChain() (newChain *BlockChain) {
+func InitBlockChain() (resChain *BlockChain) {
 
 	db := chaindb.InitDB()
-	newChain = &BlockChain{[]byte{0}, db}
+	resChain = &BlockChain{
+		Height:   0,
+		LastHash: []byte{0},
+		ChainDB:  db}
 
 	// If a BlockChain can be found, use it, otherwise make a new one
 	if db.HasChain() {
-		newChain.LastHash = db.GetLastHash()
+		resChain.LastHash = db.GetLastHash()
+		resChain.Height = db.GetBlockWithHash(resChain.LastHash).Index + 1
 	} else {
 		fmt.Println("No existing BlockChain found in", chaindb.Dir)
 		genesisBlock := createGenesisBlock()
 		fmt.Println("Genesis block signed")
 
-		newChain.saveNewLastBlock(genesisBlock)
+		resChain.saveNewLastBlock(genesisBlock)
 	}
 
 	return
@@ -48,11 +54,8 @@ func InitBlockChain() (newChain *BlockChain) {
 @param data - the data to be contained in the Block
 */
 func (bc *BlockChain) AddBlock(data string) {
-	// Get hash of most recent Block in the chain
-	lastHash := bc.ChainDB.GetLastHash()
-
 	// Create a new block and save it
-	newBlock := types.InitBlock(data, lastHash)
+	newBlock := types.InitBlock(data, bc.LastHash, bc.Height-1)
 	bc.saveNewLastBlock(newBlock)
 }
 
@@ -73,5 +76,5 @@ func (bc *BlockChain) saveNewLastBlock(newBlock *types.Block) {
 @return the Block
 */
 func createGenesisBlock() *types.Block {
-	return types.InitBlock(genesisData, []byte{}) // prevHash empty
+	return types.InitBlock(genesisData, []byte{}, -1) // prevHash empty
 }

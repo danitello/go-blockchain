@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"time"
 
 	"github.com/danitello/go-blockchain/common/hexutil"
 )
@@ -18,29 +19,39 @@ import (
 @param Difficulty - determines the target value to sign the Block
 */
 type Block struct {
+	Index      int
+	Nonce      int
+	Difficulty int
 	Hash       []byte
 	Data       []byte
 	PrevHash   []byte
-	Nonce      int
-	difficulty int
+	TimeStamp  []byte
 }
 
 /*InitBlock creates a new Block
 @param data - the data to be contained in the Block
 @param prevHash - the hash of the previous Block in the chain
+@param prevIndex - the index of the previous Block in the chain
 @return a new Block
 */
-func InitBlock(data string, prevHash []byte) *Block {
-	newBlock := &Block{[]byte{}, []byte(data), prevHash, 0, 12}
+func InitBlock(data string, prevHash []byte, prevIndex int) *Block {
+	newBlock := &Block{
+		Index:      prevIndex + 1,
+		Nonce:      0,
+		Difficulty: 12,
+		Hash:       []byte{},
+		Data:       []byte(data),
+		PrevHash:   prevHash,
+		TimeStamp:  []byte(time.Now().String())}
 	newBlock.runProof()
 	return newBlock
 }
 
 /*runProof creates a new proof for the given Block, adding it's Hash and Nonce metadata */
 func (b *Block) runProof() {
-	target := new(big.Int).Lsh(big.NewInt(1), uint(256-b.difficulty)) // Left shift, 256 is number of bits in a hash
+	target := new(big.Int).Lsh(big.NewInt(1), uint(256-b.Difficulty)) // Left shift, 256 is number of bits in a hash
 	var hash [32]byte
-	var bigIntHash big.Int // Makes a difference
+	var bigIntHash big.Int
 
 	// Block.Nonce was initalized to 0
 	for b.Nonce < math.MaxInt64 {
@@ -66,7 +77,7 @@ func (b *Block) ValidateProof() bool {
 	var bigIntHash big.Int
 	_, bigIntHash = b.computeHash(false)
 
-	target := new(big.Int).Lsh(big.NewInt(1), uint(256-b.difficulty))
+	target := new(big.Int).Lsh(big.NewInt(1), uint(256-b.Difficulty))
 
 	return bigIntHash.Cmp(target) == -1
 }
@@ -92,5 +103,5 @@ func (b *Block) computeHash(print bool) ([32]byte, big.Int) {
 @return a [][]byte containing the final data
 */
 func (b *Block) compileProofData() []byte {
-	return bytes.Join([][]byte{b.PrevHash, b.Data, hexutil.ToHex(int64(b.Nonce)), hexutil.ToHex(int64(b.difficulty))}, []byte{})
+	return bytes.Join([][]byte{b.PrevHash, b.Data, hexutil.ToHex(int64(b.Nonce)), hexutil.ToHex(int64(b.Difficulty)), b.TimeStamp}, []byte{})
 }
