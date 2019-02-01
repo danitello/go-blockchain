@@ -3,11 +3,13 @@ package types
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/gob"
 	"fmt"
 	"math"
 	"math/big"
 	"time"
 
+	"github.com/danitello/go-blockchain/common/errutil"
 	"github.com/danitello/go-blockchain/common/hexutil"
 )
 
@@ -19,13 +21,13 @@ import (
 @param Difficulty - determines the target value to sign the Block
 */
 type Block struct {
-	Index      int
-	Nonce      int
-	Difficulty int
-	Hash       []byte
-	Data       []byte
-	PrevHash   []byte
-	TimeStamp  []byte
+	Index        int
+	Nonce        int
+	Difficulty   int
+	Hash         []byte
+	PrevHash     []byte
+	TimeStamp    []byte
+	Transactions []*Transaction
 }
 
 /*InitBlock creates a new Block
@@ -34,15 +36,15 @@ type Block struct {
 @param prevIndex - the index of the previous Block in the chain
 @return a new Block
 */
-func InitBlock(data string, prevHash []byte, prevIndex int) *Block {
+func InitBlock(txns []*Transaction, prevHash []byte, prevIndex int) *Block {
 	newBlock := &Block{
-		Index:      prevIndex + 1,
-		Nonce:      0,
-		Difficulty: 12,
-		Hash:       []byte{},
-		Data:       []byte(data),
-		PrevHash:   prevHash,
-		TimeStamp:  []byte(time.Now().String())}
+		Index:        prevIndex + 1,
+		Nonce:        0,
+		Difficulty:   12,
+		Hash:         []byte{},
+		Transactions: txns,
+		PrevHash:     prevHash,
+		TimeStamp:    []byte(time.Now().String())}
 	newBlock.runProof()
 	return newBlock
 }
@@ -60,6 +62,7 @@ func (b *Block) runProof() {
 		// If the bigIntHash is less than the target, we have found the nonce
 		if bigIntHash.Cmp(target) == -1 {
 			b.Hash = hash[:]
+			b.TimeStamp = []byte(time.Now().String())
 			fmt.Println()
 			break
 		} else {
@@ -103,5 +106,37 @@ func (b *Block) computeHash(print bool) ([32]byte, big.Int) {
 @return a [][]byte containing the final data
 */
 func (b *Block) compileProofData() []byte {
-	return bytes.Join([][]byte{b.PrevHash, b.Data, hexutil.ToHex(int64(b.Nonce)), hexutil.ToHex(int64(b.Difficulty)), b.TimeStamp}, []byte{})
+	return bytes.Join([][]byte{b.PrevHash, b.hashTransactions(), hexutil.ToHex(int64(b.Nonce)), hexutil.ToHex(int64(b.Difficulty))}, []byte{})
+}
+
+/*hashTransactions creates a hashed representation of the Transactions in a Block
+@return the hash
+*/
+func (b *Block) hashTransactions() []byte {
+	var txHashes [][]byte
+	var resHash [32]byte
+
+	// Get hash of each tx
+	for _, tx := range b.Transactions {
+		txHashes = append(txHashes, tx.ID)
+	}
+
+	// Get final hash
+	resHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+
+	return resHash[:]
+}
+
+/*DeserializeBlock converts a []byte into a Block for database compatibility
+@param data - the []byte representation of a Block
+@returns a types.Block representation of a Block
+*/
+func DeserializeBlock(data []byte) *Block {
+	var block Block
+
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	err := decoder.Decode(&block)
+	errutil.HandleErr(err)
+
+	return &block
 }

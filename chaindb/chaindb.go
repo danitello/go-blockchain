@@ -3,6 +3,8 @@ package chaindb
 /* Database interfacing */
 
 import (
+	"os"
+
 	"github.com/danitello/go-blockchain/chaindb/dbutil"
 	"github.com/danitello/go-blockchain/common/errutil"
 	"github.com/danitello/go-blockchain/core/types"
@@ -33,26 +35,18 @@ func InitDB() *ChainDB {
 	opts.ValueDir = Dir
 	bdb, err := badger.Open(opts)
 	errutil.HandleErr(err)
-
 	db := ChainDB{bdb}
 	return &db
 }
 
-/*HasChain determines whether the ChainDB instance has more than 0 blocks
-@return whether the instance has more than 0 blocks
+/*HasChain determines whether the ChainDB instance has a previously initiated BlockChain
+@return whether it does or not
 */
-func (db *ChainDB) HasChain() (exists bool) {
-	err := db.database.View(func(txn *badger.Txn) error {
-		if _, err := txn.Get([]byte(LastHashKey)); err == badger.ErrKeyNotFound {
-			exists = false
-			return err
-		}
-
-		exists = true
-		return nil
-	})
-	errutil.HandleErr(err)
-	return
+func (db *ChainDB) HasChain() bool {
+	if _, err := os.Stat(Dir + "/MANIFEST"); os.IsNotExist(err) {
+		return false
+	}
+	return true
 }
 
 /*GetLastHash gets the hash of the most recent Block in the database
@@ -64,7 +58,6 @@ func (db *ChainDB) GetLastHash() (lastHash []byte) {
 		errutil.HandleErr(err)
 
 		lastHash, err = item.Value()
-
 		return
 	})
 	errutil.HandleErr(err)
@@ -82,7 +75,7 @@ func (db *ChainDB) GetBlockWithHash(hash []byte) (resBlock *types.Block) {
 		errutil.HandleErr(err)
 
 		value, err := item.Value()
-		resBlock = dbutil.DeserializeBlock(value)
+		resBlock = types.DeserializeBlock(value)
 
 		return err
 	})
@@ -96,7 +89,7 @@ func (db *ChainDB) GetBlockWithHash(hash []byte) (resBlock *types.Block) {
 */
 func (db *ChainDB) SaveNewLastBlock(newBlock *types.Block) {
 	err := db.database.Update(func(txn *badger.Txn) error {
-		err := txn.Set(newBlock.Hash, dbutil.SerializeBlock(newBlock))
+		err := txn.Set(newBlock.Hash, dbutil.Serialize(newBlock))
 		errutil.HandleErr(err)
 
 		err = txn.Set([]byte(LastHashKey), newBlock.Hash)
