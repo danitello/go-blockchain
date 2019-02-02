@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/hex"
 	"fmt"
+	"log"
 
 	"github.com/danitello/go-blockchain/chaindb"
 	"github.com/danitello/go-blockchain/core/types"
@@ -27,28 +28,44 @@ type BlockChain struct {
 /*InitBlockChain instantiates a new instance of a BlockChain
 @return the current working BlockChain
 */
-func InitBlockChain(address string) (resChain *BlockChain) {
+func InitBlockChain(address string) *BlockChain {
 
 	db := chaindb.InitDB()
-	resChain = &BlockChain{
+	resChain := &BlockChain{
 		Height:   0,
 		LastHash: []byte{0},
 		ChainDB:  db}
 
 	// If a BlockChain can be found, use it, otherwise make a new one
 	if db.HasChain() {
-		resChain.LastHash = db.GetLastHash()
-		resChain.Height = db.GetBlockWithHash(resChain.LastHash).Index + 1
+		log.Panic(fmt.Sprintf("BlockChain already exists in %s", chaindb.Dir))
 	} else {
-		fmt.Println("No existing BlockChain found in", chaindb.Dir)
 		genesisBlock := createGenesisBlock(address)
 		fmt.Println("Genesis block signed")
 
 		resChain.saveNewLastBlock(genesisBlock)
 	}
 
-	return
+	return resChain
 
+}
+
+/*GetBlockChain gets an existing BlockChain from the database */
+func GetBlockChain() *BlockChain {
+	db := chaindb.InitDB()
+	resChain := &BlockChain{
+		Height:   0,
+		LastHash: []byte{0},
+		ChainDB:  db}
+
+	if db.HasChain() {
+		resChain.LastHash = db.GetLastHash()
+		resChain.Height = db.GetBlockWithHash(resChain.LastHash).Index + 1
+	} else {
+		log.Panic("Error: No BlockChain exists")
+	}
+
+	return resChain
 }
 
 /*AddBlock adds a new Block to a given BlockChain
@@ -81,41 +98,37 @@ func createGenesisBlock(address string) *types.Block {
 	return types.InitBlock([]*types.Transaction{cbtx}, []byte{}, -1) // prevHash empty
 }
 
-/*GetSpendableOutputs gets the utxos associated with an address that it needs to access to spend a given amount
+/*GetSpendableOutputs gets the utxos associated with an address up to what it needs to access in order to spend a given amount
 @param address - the address in question
-@param amount - the amount that the address is attempting to send
-@return int - the spendable amount
+@param amount - the amount that the address is attempting to send (-1 indicates to get the entire balance)
+@return int - the total spendable amount in the utxos returned - in case this is greater than the amount attempting to be sent
 @return map - the utxos
 */
 func (bc *BlockChain) GetSpendableOutputs(address string, amount int) (int, map[string][]int) {
 	utxns := bc.GetUnspentTransactions(address)
 	utxos := make(map[string][]int)
-	sum := 0
+	txoSum := 0
 
 Work:
 	for _, tx := range utxns {
 		txID := hex.EncodeToString(tx.ID)
 		for i, txo := range tx.Outputs {
-			if txo.CanBeUnlocked(address) && sum < amount {
-				sum += txo.Amount
+			if txo.CanBeUnlocked(address) && txoSum < amount {
+				txoSum += txo.Amount
 				utxos[txID] = append(utxos[txID], i)
 
-				if sum >= amount {
+				if txoSum >= amount {
 					break Work
 				}
 			}
 		}
 	}
-	return sum, utxos
+	return txoSum, utxos
 }
-
-// func (bc *Blockchain) GetUTXO(address string) []types.TxOutput {
-
-// }
 
 /*GetUnspentTransactions gets the transactions that contain utxos owned by an address
 @params address - the address in question
-@return an array of the utxos
+@return an array of the utxns
 */
 func (bc *BlockChain) GetUnspentTransactions(address string) []types.Transaction {
 	var utxns []types.Transaction
@@ -138,7 +151,16 @@ func (bc *BlockChain) GetUnspentTransactions(address string) []types.Transaction
 					}
 				}
 				if txo.CanBeUnlocked(address) {
-					utxns = append(utxns, *tx)
+					exists := false
+					txid := tx.ID
+					for _, utxn := range utxns {
+						if hex.EncodeToString(utxn.ID) == hex.EncodeToString(txid) {
+							exists = true
+						}
+					}
+					if !exists {
+						utxns = append(utxns, *tx)
+					}
 				}
 			}
 
@@ -156,4 +178,15 @@ func (bc *BlockChain) GetUnspentTransactions(address string) []types.Transaction
 		}
 	}
 	return utxns
+}
+
+/*CreateTransaction makes a new Transaction to be added to a Block
+@param from - sender
+@param to - recipient
+@param amount - amount to send
+@return the Transaction
+*/
+func (bc *BlockChain) CreateTransaction(from, to string, amount int) *types.Transaction {
+	txoSum, utxos := bc.GetSpendableOutputs(from, amount)
+	return types.CreateTransaction(from, to, amount, txoSum, utxos)
 }

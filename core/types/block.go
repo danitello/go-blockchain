@@ -14,11 +14,13 @@ import (
 )
 
 /*Block is a block in the blockchain
-@param Hash - the hash of this block
-@param Data - the data in this block
-@param PrevHash - the hash of the previous Block
+@param Index - index of this Block in the BlockChain
 @param Nonce - integer that completes hash of Block for successful signing
 @param Difficulty - determines the target value to sign the Block
+@param Hash - the hash of this block
+@param PrevHash - the hash of the previous Block
+@param TimeStamp - the time this Blocks proof
+@param Transactions - the transactions contained in this Block
 */
 type Block struct {
 	Index        int

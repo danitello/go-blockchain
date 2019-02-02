@@ -3,8 +3,6 @@ package chaindb
 /* Database interfacing */
 
 import (
-	"os"
-
 	"github.com/danitello/go-blockchain/chaindb/dbutil"
 	"github.com/danitello/go-blockchain/common/errutil"
 	"github.com/danitello/go-blockchain/core/types"
@@ -43,10 +41,18 @@ func InitDB() *ChainDB {
 @return whether it does or not
 */
 func (db *ChainDB) HasChain() bool {
-	if _, err := os.Stat(Dir + "/MANIFEST"); os.IsNotExist(err) {
-		return false
-	}
-	return true
+	var exists bool
+	err := db.database.View(func(txn *badger.Txn) error {
+		if _, err := txn.Get([]byte(LastHashKey)); err == badger.ErrKeyNotFound {
+			exists = false
+			return err
+		}
+
+		exists = true
+		return nil
+	})
+	errutil.HandleErr(err)
+	return exists
 }
 
 /*GetLastHash gets the hash of the most recent Block in the database

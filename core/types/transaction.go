@@ -2,13 +2,17 @@ package types
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"log"
+
+	"github.com/danitello/go-blockchain/common/errutil"
 
 	"github.com/danitello/go-blockchain/chaindb/dbutil"
 )
 
-/* Transaction placed in Blocks
-@param ID - Transaction ID
+/*Transaction placed in Blocks
+@param TxID - Transaction ID
 @param TxInput - associated Transaction input
 @param TxOutput - associated Transaction output
 */
@@ -19,7 +23,7 @@ type Transaction struct {
 }
 
 /*TxInput is a reference to a previous TxOutput
-@param ID - ID of Transaction that the TxOutput resides in
+@param TxID - TxID of Transaction that the TxOutput resides in
 @param OutputIndex - index of the TxOutput in the Transaction
 @param Sig - data used in TxOutput PubKey
 */
@@ -30,12 +34,61 @@ type TxInput struct {
 }
 
 /*TxOutput specifies coin value made available to a user
-@param Value - amount
+@param Amount - total
 @param PubKey - ID of user
 */
 type TxOutput struct {
 	Amount int
 	PubKey string
+}
+
+/*initTransaction instantiates a new Tranaction
+@param TxID - Transaction ID
+@param TxInput - associated Transaction input
+@param TxOutput - associated Transaction output
+@return the Transaction
+*/
+func initTransaction(inputs []TxInput, outputs []TxOutput) *Transaction {
+	tx := Transaction{nil, inputs, outputs}
+	tx.setID()
+	return &tx
+}
+
+/*CreateTransaction creates a Transaction that will be added to a Block in the BlockChain
+@param from - the sending address
+@param to - the receiving address
+@param amount - the amount being exchanged
+@param txoSum - sum of txos being spent
+@param utxos - map of txIDs and utxoIdxs
+@return the new Transaction
+*/
+func CreateTransaction(from, to string, amount, txoSum int, utxos map[string][]int) *Transaction {
+	var newInputs []TxInput
+	var newOutputs []TxOutput
+
+	if txoSum < amount {
+		log.Panic("Error: Not enough funds")
+	}
+
+	// New inputs for this Transaction
+	for txID, utxoIdxs := range utxos {
+		txID, err := hex.DecodeString(txID)
+		errutil.HandleErr(err)
+
+		for _, utxoIdx := range utxoIdxs {
+			newInputs = append(newInputs, TxInput{txID, utxoIdx, from}) // map outputs being spent to TxInputs
+		}
+	}
+
+	// New outputs for this Transaction
+	newOutputs = append(newOutputs, TxOutput{amount, to})
+	if txoSum > amount {
+		newOutputs = append(newOutputs, TxOutput{txoSum - amount, from}) // Keep left over
+	}
+
+	newTx := initTransaction(newInputs, newOutputs)
+	return newTx
+
 }
 
 /*CoinbaseTx is the transaction in each Block that rewards the miner
@@ -46,9 +99,8 @@ func CoinbaseTx(to string) *Transaction {
 	value := 100
 	txin := TxInput{[]byte{}, -1, fmt.Sprintf("%d coins to %s", value, to)} // referencing no output
 	txout := TxOutput{value, to}
-	tx := Transaction{nil, []TxInput{txin}, []TxOutput{txout}}
-	tx.setID()
-	return &tx
+	newTx := initTransaction([]TxInput{txin}, []TxOutput{txout})
+	return newTx
 }
 
 /*setID computes the ID for a Transaction */

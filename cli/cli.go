@@ -1,44 +1,53 @@
 package cli
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"runtime"
+	"strconv"
+
+	"github.com/danitello/go-blockchain/common/errutil"
 
 	"github.com/danitello/go-blockchain/core"
+	"github.com/danitello/go-blockchain/core/types"
 )
 
-/*CommandLine allows the user to interact with the BlockChain through the terminal
-@param BC - the chain in question
-*/
-type CommandLine struct {
-	BC *core.BlockChain
-}
-
-/*Run starts the cli and retrieves the args sent with the "go run" command*/
-func (cl *CommandLine) Run() {
-	// Check if there are args (first arg is the main run command)
+/*Run starts the cli and processes the args*/
+func Run() {
+	// Check if there are args (first arg is the "main" subcommand)
 	if len(os.Args) < 2 {
 		printHelp()
 		runtime.Goexit()
 	}
 
 	// Commands
-	addCommand := flag.NewFlagSet("add", flag.ExitOnError)
+	initCommand := flag.NewFlagSet("init", flag.ExitOnError)
+	balanceCommand := flag.NewFlagSet("balance", flag.ExitOnError)
+	sendCommand := flag.NewFlagSet("send", flag.ExitOnError)
 	helpCommand := flag.NewFlagSet("help", flag.ExitOnError)
 	printCommand := flag.NewFlagSet("print", flag.ExitOnError)
 
 	// Subcommands (pointers)
-	addCommandData := addCommand.String("block", "", "(Required) The data to be put in the Block.")
-	//addCommandHelp := addCommand.String("help", "", "Quick help on 'add' command")
+	initCommandAddress := initCommand.String("address", "", "(Required) The address to init the chain with.")
+	balanceAddress := balanceCommand.String("address", "", "(Required) The address to get balance of.")
+	sendCommandFrom := sendCommand.String("from", "", "(Required) The address to send from.")
+	sendCommandTo := sendCommand.String("to", "", "(Required) The address to send to.")
+	sendCommandAmount := sendCommand.String("amount", "", "(Required) The amount to send.")
+	//sendCommandHelp := addCommand.String("help", "", "Quick help on 'add' command")
 	//helpCommandHelp:= helpCommand.String("help", "", "Quick help on 'help' command")
 	//printCommandHelp:= printCommand.String("help", "", "Quick help on 'print' command")
 
 	// Parse relevant commands
 	switch os.Args[1] {
-	case "add":
-		addCommand.Parse(os.Args[2:])
+	case "init":
+		initCommand.Parse(os.Args[2:])
+	case "balance":
+		balanceCommand.Parse(os.Args[2:])
+	case "send":
+		sendCommand.Parse(os.Args[2:])
 	case "help":
 		helpCommand.Parse(os.Args[2:])
 	case "print":
@@ -49,46 +58,89 @@ func (cl *CommandLine) Run() {
 	}
 
 	// Check for and evaluate used commands
-	if addCommand.Parsed() {
-		// 'add' requires a subcommand
-		// Make sure the required input was submitted
-		if *addCommandData == "" {
-			addCommand.Usage()
+	if initCommand.Parsed() {
+		if *initCommandAddress == "" {
+			initCommand.Usage()
 			fmt.Println()
 			runtime.Goexit() // Give badgerdb time to garbage collect
 		}
-		cl.addBlock(*addCommandData)
+
+		initBlockChain(*initCommandAddress)
+
+	}
+	if sendCommand.Parsed() {
+		// Make sure the required input was submitted
+		if *sendCommandFrom == "" || *sendCommandTo == "" || *sendCommandAmount == "" {
+			sendCommand.Usage()
+			fmt.Println()
+			runtime.Goexit()
+		}
+
+		amt, err := strconv.Atoi(*sendCommandAmount)
+		errutil.HandleErr(err)
+		sendTransaction(*sendCommandFrom, *sendCommandTo, amt)
+	}
+
+	if balanceCommand.Parsed() {
+		if *balanceAddress == "" {
+			balanceCommand.Usage()
+			runtime.Goexit()
+		}
+
+		getBalance(*balanceAddress)
 	}
 
 	if helpCommand.Parsed() {
 		printHelp()
-		runtime.Goexit()
 	}
 
 	if printCommand.Parsed() {
-		cl.printChain()
+		printChain()
 	}
 
 }
 
-/*addBlock initiates the addition of a Block to the chain
-@param data - the data to be contained in the Block
+/*initBlockChain initializes a new BlockChain */
+func initBlockChain(address string) {
+	bc := core.InitBlockChain(address)
+	bc.ChainDB.CloseDB()
+}
+
+/*getBalance prints the balance of the given address
+@param address - the address in question
 */
-func (cl *CommandLine) addBlock(data string) {
-	cl.BC.AddBlock(data)
+func getBalance(address string) {
+	bc := core.GetBlockChain()
+	defer bc.ChainDB.CloseDB()
+	txoSum, _ := bc.GetSpendableOutputs(address, math.MaxInt64)
+
+	fmt.Printf("Balance of %s: %d\n", address, txoSum)
+}
+
+/*sendTransaction initiates the addition of a Transaction to the chain
+@param from - the sender
+@param to - the recipient
+@param amount - amount to send
+*/
+func sendTransaction(from, to string, amount int) {
+	var txns []*types.Transaction
+	bc := core.GetBlockChain()
+	txns = append(txns, bc.CreateTransaction(from, to, amount))
+	bc.AddBlock(txns)
 }
 
 /*printChain prints the chain from newest to oldest Block
  */
-func (cl *CommandLine) printChain() {
-	iter := cl.BC.Iterator()
+func printChain() {
+	bc := core.GetBlockChain()
+	iter := bc.Iterator()
 
 	for {
 		currBlock := iter.Next()
 
 		fmt.Printf("Block\t %d\n", currBlock.Index)
 		fmt.Println("----------")
-		fmt.Printf("Data: %s\n", currBlock.Data)
+		fmt.Printf("First TxID: %s\n", hex.EncodeToString(currBlock.Transactions[0].ID))
 		fmt.Printf("Hash: %x\n", currBlock.Hash)
 		fmt.Printf("Time: %s\n", currBlock.TimeStamp)
 		fmt.Println("Verified:", currBlock.ValidateProof())
@@ -106,7 +158,7 @@ func printHelp() {
 	fmt.Println("Usage: go run main.go <command>")
 	fmt.Println()
 	fmt.Println("where <command> is one of:")
-	fmt.Println("\tadd, help, print")
+	fmt.Println("\tbalance, help, init, print, send")
 	fmt.Println()
 	//fmt.Println("./main.go <command> h\t\tquick help on <command>")
 
