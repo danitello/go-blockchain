@@ -32,8 +32,8 @@ type Block struct {
 	Transactions []*Transaction
 }
 
-/*InitBlock creates a new Block
-@param data - the data to be contained in the Block
+/*InitBlock initializes a new Block
+@param txns - the Transactions to be contained in the Block
 @param prevHash - the hash of the previous Block in the chain
 @param prevIndex - the index of the previous Block in the chain
 @return a new Block

@@ -50,7 +50,9 @@ func InitBlockChain(address string) *BlockChain {
 
 }
 
-/*GetBlockChain gets an existing BlockChain from the database */
+/*GetBlockChain gets an existing BlockChain from the database
+@return the BlockChain
+*/
 func GetBlockChain() *BlockChain {
 	db := chaindb.InitDB()
 	resChain := &BlockChain{
@@ -100,7 +102,7 @@ func createGenesisBlock(address string) *types.Block {
 
 /*GetSpendableOutputs gets the utxos associated with an address up to what it needs to access in order to spend a given amount
 @param address - the address in question
-@param amount - the amount that the address is attempting to send (-1 indicates to get the entire balance)
+@param amount - the amount that the address is attempting to send
 @return int - the total spendable amount in the utxos returned - in case this is greater than the amount attempting to be sent
 @return map - the utxos
 */

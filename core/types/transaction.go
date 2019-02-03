@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/danitello/go-blockchain/common/errutil"
-
 	"github.com/danitello/go-blockchain/chaindb/dbutil"
+	"github.com/danitello/go-blockchain/common/errutil"
 )
 
 /*Transaction placed in Blocks
@@ -22,27 +21,7 @@ type Transaction struct {
 	Outputs []TxOutput
 }
 
-/*TxInput is a reference to a previous TxOutput
-@param TxID - TxID of Transaction that the TxOutput resides in
-@param OutputIndex - index of the TxOutput in the Transaction
-@param Sig - data used in TxOutput PubKey
-*/
-type TxInput struct {
-	TxID        []byte
-	OutputIndex int
-	Sig         string
-}
-
-/*TxOutput specifies coin value made available to a user
-@param Amount - total
-@param PubKey - ID of user
-*/
-type TxOutput struct {
-	Amount int
-	PubKey string
-}
-
-/*initTransaction instantiates a new Tranaction
+/*initTransaction initializes a new Tranaction
 @param TxID - Transaction ID
 @param TxInput - associated Transaction input
 @param TxOutput - associated Transaction output
@@ -117,20 +96,4 @@ func (tx *Transaction) setID() {
 */
 func (tx *Transaction) IsCoinbase() bool {
 	return len(tx.Inputs) == 1 && len(tx.Inputs[0].TxID) == 0 && tx.Inputs[0].OutputIndex == -1
-}
-
-/*CanUnlock determines whether the signature provided is the owner of the ouput referenced by txin
-@param newSig - the signature in question
-@return whether the signature is valid
-*/
-func (txin *TxInput) CanUnlock(newSig string) bool {
-	return txin.Sig == newSig
-}
-
-/*CanBeUnlocked determines whether the PubKey is the owner of the output
-@param newPubKey - the PubKey in question
-@return whether the PubKey is valid
-*/
-func (txout *TxOutput) CanBeUnlocked(newPubKey string) bool {
-	return txout.PubKey == newPubKey
 }
