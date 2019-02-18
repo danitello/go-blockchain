@@ -7,6 +7,6 @@ import "log"
 */
 func HandleErr(err error) {
 	if err != nil {
-		log.Println(err)
+		log.Panic(err)
 	}
 }

@@ -1,4 +1,4 @@
-package dbutil
+package byteutil
 
 import (
 	"bytes"

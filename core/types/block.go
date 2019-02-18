@@ -97,7 +97,7 @@ func (b *Block) computeHash(print bool) ([32]byte, big.Int) {
 
 	hash := sha256.Sum256(b.compileProofData())
 	if print {
-		fmt.Printf("\r%x", hash)
+		fmt.Printf("\rBlock Hash: %x", hash)
 	}
 	bigIntHash.SetBytes(hash[:])
 

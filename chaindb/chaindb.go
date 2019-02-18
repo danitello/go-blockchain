@@ -3,7 +3,9 @@ package chaindb
 /* Database interfacing */
 
 import (
-	"github.com/danitello/go-blockchain/chaindb/dbutil"
+	"log"
+
+	"github.com/danitello/go-blockchain/common/byteutil"
 	"github.com/danitello/go-blockchain/common/errutil"
 	"github.com/danitello/go-blockchain/core/types"
 	"github.com/dgraph-io/badger"
@@ -51,7 +53,9 @@ func (db *ChainDB) HasChain() bool {
 		exists = true
 		return nil
 	})
-	errutil.HandleErr(err)
+	if err != nil {
+		log.Println(err)
+	}
 	return exists
 }
 
@@ -95,7 +99,7 @@ func (db *ChainDB) GetBlockWithHash(hash []byte) (resBlock *types.Block) {
 */
 func (db *ChainDB) SaveNewLastBlock(newBlock *types.Block) {
 	err := db.database.Update(func(txn *badger.Txn) error {
-		err := txn.Set(newBlock.Hash, dbutil.Serialize(newBlock))
+		err := txn.Set(newBlock.Hash, byteutil.Serialize(newBlock))
 		errutil.HandleErr(err)
 
 		err = txn.Set([]byte(LastHashKey), newBlock.Hash)
