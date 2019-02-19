@@ -6,7 +6,7 @@ import (
 	"github.com/danitello/go-blockchain/wallet"
 )
 
-/*TxInput is a reference to a previous TxOutput
+/*TxInput spends (references) a previous TxOutput
 @param TxID - ID of Transaction that the TxOutput resides in
 @param OutputIdx - idx of the TxOutput in the Transaction
 @param Signature - signs the txin as unlocking the txo
@@ -19,7 +19,7 @@ type TxInput struct {
 	PubKey    []byte
 }
 
-/*UsesKey determines whether the pubKeyHash provided is the owner of the ouput referenced by txin
+/*UsesKey determines whether the pubKeyHash provided is the owner of the output referenced by txin
 @param pubKeyHash - the pubKeyHash in question
 @return whether it is valid
 */
