@@ -2,18 +2,24 @@ package types
 
 import (
 	"bytes"
+	"encoding/gob"
 
+	"github.com/danitello/go-blockchain/common/errutil"
 	"github.com/danitello/go-blockchain/wallet"
 	"github.com/danitello/go-blockchain/wallet/walletutil"
 )
 
-/*TxOutput specifies amount being made available to a wallet
+/*TxOutput specifies amount being made available in a block to a wallet
 @param Amount - total
 @param PubKeyHash - hash of pub key to unlock output
 */
 type TxOutput struct {
 	Amount     int
 	PubKeyHash []byte
+}
+
+type TxOutputs struct {
+	Outputs []TxOutput
 }
 
 /*InitTxOutput creates a new txo and locks it using a given address
@@ -43,4 +49,18 @@ func (txo *TxOutput) Lock(address []byte) {
 */
 func (txo *TxOutput) IsLockedWithKey(pubKeyHash []byte) bool {
 	return bytes.Compare(txo.PubKeyHash, pubKeyHash) == 0
+}
+
+/*DeserializeTxOutputs converts a []byte into []TxOutput
+@param data - the []byte representation of []TxOutput
+@returns a []TxOutput representation
+*/
+func DeserializeTxOutputs(data []byte) TxOutputs {
+	var TXO TxOutputs
+
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	err := decoder.Decode(&TXO)
+	errutil.Handle(err)
+
+	return TXO
 }

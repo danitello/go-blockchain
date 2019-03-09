@@ -2,10 +2,10 @@ package errutil
 
 import "log"
 
-/*HandleErr displays errors to terminal
+/*Handle displays errors to terminal
 @param err - the error in question
 */
-func HandleErr(err error) {
+func Handle(err error) {
 	if err != nil {
 		log.Panic(err)
 	}

@@ -27,7 +27,7 @@ func (bc *BlockChain) Iterator() *BlockChainIterator {
 */
 func (iter *BlockChainIterator) Next() (resBlock *types.Block) {
 	// Get the Block represented by the CurrentHash
-	resBlock = iter.db.GetBlockWithHash(iter.currentHash)
+	resBlock = iter.db.ReadBlockWithHash(iter.currentHash)
 
 	// Update iterator
 	iter.currentHash = resBlock.PrevHash

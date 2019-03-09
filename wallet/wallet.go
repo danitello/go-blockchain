@@ -43,7 +43,7 @@ func InitWallet() *Wallet {
 func createKeyPair() (ecdsa.PrivateKey, []byte) {
 	curve := elliptic.P256()
 	privKey, err := ecdsa.GenerateKey(curve, rand.Reader)
-	errutil.HandleErr(err)
+	errutil.Handle(err)
 
 	// Derive []byte representation of pub key
 	pubKey := append(privKey.PublicKey.X.Bytes(), privKey.PublicKey.Y.Bytes()...)
@@ -87,7 +87,7 @@ func HashPubKey(pubKey []byte) []byte {
 
 	ripemdHasher := ripemd160.New()
 	_, err := ripemdHasher.Write(shaPubKey[:])
-	errutil.HandleErr(err)
+	errutil.Handle(err)
 	ripemdPubKey := ripemdHasher.Sum(nil)
 
 	return ripemdPubKey

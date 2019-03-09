@@ -30,8 +30,9 @@ func Run() {
 	createWalletCommand := flag.NewFlagSet("create-wallet", flag.ExitOnError)
 	initChainCommand := flag.NewFlagSet("init-chain", flag.ExitOnError)
 	helpCommand := flag.NewFlagSet("help", flag.ExitOnError)
-	listAddressesCommand := flag.NewFlagSet("addresses", flag.ExitOnError)
+	addressListCommand := flag.NewFlagSet("address-list", flag.ExitOnError)
 	printCommand := flag.NewFlagSet("print-chain", flag.ExitOnError)
+	reindexCommand := flag.NewFlagSet("reindex", flag.ExitOnError)
 	sendCommand := flag.NewFlagSet("send", flag.ExitOnError)
 
 	// Subcommands (pointers)
@@ -40,9 +41,6 @@ func Run() {
 	sendCommandFrom := sendCommand.String("from", "", "(Required) The address to send from.")
 	sendCommandTo := sendCommand.String("to", "", "(Required) The address to send to.")
 	sendCommandAmount := sendCommand.String("amount", "", "(Required) The amount to send.")
-	//sendCommandHelp := addCommand.String("help", "", "Quick help on 'add' command")
-	//helpCommandHelp:= helpCommand.String("help", "", "Quick help on 'help' command")
-	//printCommandHelp:= printCommand.String("help", "", "Quick help on 'print' command")
 
 	// Parse relevant commands
 	switch os.Args[1] {
@@ -54,10 +52,12 @@ func Run() {
 		helpCommand.Parse(os.Args[2:])
 	case "init-chain":
 		initChainCommand.Parse(os.Args[2:])
-	case "addresses":
-		listAddressesCommand.Parse(os.Args[2:])
+	case "address-list":
+		addressListCommand.Parse(os.Args[2:])
 	case "print-chain":
 		printCommand.Parse(os.Args[2:])
+	case "reindex":
+		reindexCommand.Parse(os.Args[2:])
 	case "send":
 		sendCommand.Parse(os.Args[2:])
 	default:
@@ -66,29 +66,6 @@ func Run() {
 	}
 
 	// Check for and evaluate used commands
-	if initChainCommand.Parsed() {
-		if *initChainCommandAddress == "" {
-			initChainCommand.Usage()
-			fmt.Println()
-			runtime.Goexit() // Give badgerdb time to garbage collect
-		}
-
-		initChain(*initChainCommandAddress)
-
-	}
-	if sendCommand.Parsed() {
-		// Make sure the required input was submitted
-		if *sendCommandFrom == "" || *sendCommandTo == "" || *sendCommandAmount == "" {
-			sendCommand.Usage()
-			fmt.Println()
-			runtime.Goexit()
-		}
-
-		amt, err := strconv.Atoi(*sendCommandAmount)
-		errutil.HandleErr(err)
-		sendTransaction(*sendCommandFrom, *sendCommandTo, amt)
-	}
-
 	if balanceCommand.Parsed() {
 		if *balanceAddress == "" {
 			balanceCommand.Usage()
@@ -102,27 +79,55 @@ func Run() {
 		createWallet()
 	}
 
-	if listAddressesCommand.Parsed() {
-		listAddresses()
-	}
-
 	if helpCommand.Parsed() {
 		printHelp()
+	}
+
+	if initChainCommand.Parsed() {
+		if *initChainCommandAddress == "" {
+			initChainCommand.Usage()
+			fmt.Println()
+			runtime.Goexit() // Give badgerdb time to garbage collect
+		}
+
+		initChain(*initChainCommandAddress)
+
+	}
+
+	if addressListCommand.Parsed() {
+		addressList()
 	}
 
 	if printCommand.Parsed() {
 		printChain()
 	}
 
+	if reindexCommand.Parsed() {
+		reindex()
+	}
+
+	if sendCommand.Parsed() {
+		// Make sure the required input was submitted
+		if *sendCommandFrom == "" || *sendCommandTo == "" || *sendCommandAmount == "" {
+			sendCommand.Usage()
+			fmt.Println()
+			runtime.Goexit()
+		}
+
+		amt, err := strconv.Atoi(*sendCommandAmount)
+		errutil.Handle(err)
+		sendTransaction(*sendCommandFrom, *sendCommandTo, amt)
+	}
+
 }
 
-/*initChain initializes a new BlockChain */
-func initChain(address string) {
-	if !wallet.ValidateAddress(address) {
-		log.Panic("Invalid address")
+/*addressList iterates through current Wallets and prints each Wallet address */
+func addressList() {
+	ws, _ := wallet.InitWallets()
+	addresses := ws.GetAddresses()
+	for _, address := range addresses {
+		fmt.Println(address)
 	}
-	bc := core.InitBlockChain(address)
-	bc.ChainDB.CloseDB()
 }
 
 /*getBalance prints the balance of the given address
@@ -138,7 +143,7 @@ func getBalance(address string) {
 
 	pubKeyHash := wallet.GetPubKeyHashFromAddress(address)
 
-	_, balance := bc.GetSpendableOutputs(pubKeyHash, math.MaxInt32)
+	_, balance := bc.GetUTXOByPubKey(pubKeyHash, math.MaxInt32)
 
 	fmt.Printf("Balance of %s: %d\n", address, balance)
 }
@@ -150,31 +155,13 @@ func createWallet() {
 	ws.SaveToFile()
 }
 
-/*listAddresses iterates through current Wallets and prints each Wallet address */
-func listAddresses() {
-	ws, _ := wallet.InitWallets()
-	addresses := ws.GetAddresses()
-	for _, address := range addresses {
-		fmt.Println(address)
+/*initChain initializes a new BlockChain */
+func initChain(address string) {
+	if !wallet.ValidateAddress(address) {
+		log.Panic("Invalid address")
 	}
-}
-
-/*sendTransaction initiates the addition of a Transaction to the chain
-@param from - the sender
-@param to - the recipient
-@param amount - amount to send
-*/
-func sendTransaction(from, to string, amount int) {
-	if !wallet.ValidateAddress(from) {
-		log.Panic("Invalid from address")
-	}
-	if !wallet.ValidateAddress(to) {
-		log.Panic("Invalid to address")
-	}
-	var txns []*types.Transaction
-	bc := core.GetBlockChain()
-	txns = append(txns, bc.CreateTransaction(from, to, amount))
-	bc.AddBlock(txns)
+	bc := core.InitBlockChain(address)
+	defer bc.ChainDB.CloseDB()
 }
 
 /*printChain prints the chain from newest to oldest Block
@@ -208,8 +195,37 @@ func printHelp() {
 	fmt.Println("Usage: go run main.go <command>")
 	fmt.Println()
 	fmt.Println("where <command> is one of:")
-	fmt.Println("\taddresses, balance, create-wallet, help, init-chain, print-chain, send")
+	fmt.Println("\taddress-list, balance, create-wallet, help, init-chain, print-chain, reindex, send")
 	fmt.Println()
 	//fmt.Println("./main.go <command> h\t\tquick help on <command>")
 
+}
+
+/*reindex reindexes UTXO set */
+func reindex() {
+	bc := core.GetBlockChain()
+	defer bc.ChainDB.CloseDB()
+	bc.Reindex()
+
+	count := bc.CountUTX()
+	fmt.Printf("Reindex complete! There are %d transactions in the UTXO set.\n", count)
+}
+
+/*sendTransaction initiates the addition of a Transaction to the chain
+@param from - the sender
+@param to - the recipient
+@param amount - amount to send
+*/
+func sendTransaction(from, to string, amount int) {
+	if !wallet.ValidateAddress(from) {
+		log.Panic("Invalid from address")
+	}
+	if !wallet.ValidateAddress(to) {
+		log.Panic("Invalid to address")
+	}
+	var txns []*types.Transaction
+	bc := core.GetBlockChain()
+	defer bc.ChainDB.CloseDB()
+	txns = append(txns, bc.CreateTransaction(from, to, amount))
+	bc.AddBlock(txns)
 }

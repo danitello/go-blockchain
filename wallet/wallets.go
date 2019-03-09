@@ -76,12 +76,12 @@ func (ws *Wallets) LoadFromFile() error {
 	var wallets Wallets
 
 	data, err := ioutil.ReadFile(walletFile)
-	errutil.HandleErr(err)
+	errutil.Handle(err)
 
 	gob.Register(elliptic.P256())
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 	err = decoder.Decode(&wallets)
-	errutil.HandleErr(err)
+	errutil.Handle(err)
 
 	ws.Wallets = wallets.Wallets
 
@@ -96,8 +96,8 @@ func (ws *Wallets) SaveToFile() {
 
 	encoder := gob.NewEncoder(&data)
 	err := encoder.Encode(ws)
-	errutil.HandleErr(err)
+	errutil.Handle(err)
 
 	err = ioutil.WriteFile(walletFile, data.Bytes(), 0644)
-	errutil.HandleErr(err)
+	errutil.Handle(err)
 }

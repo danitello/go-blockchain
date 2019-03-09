@@ -61,17 +61,16 @@ func InitBlockChain(address string) *BlockChain {
 */
 func GetBlockChain() *BlockChain {
 	db := chaindb.InitDB()
+
+	if !db.HasChain() {
+		log.Panic("Error: No BlockChain exists")
+	}
 	resChain := &BlockChain{
 		Height:   0,
 		LastHash: []byte{0},
 		ChainDB:  db}
-
-	if db.HasChain() {
-		resChain.LastHash = db.GetLastHash()
-		resChain.Height = db.GetBlockWithHash(resChain.LastHash).Index + 1
-	} else {
-		log.Panic("Error: No BlockChain exists")
-	}
+	resChain.LastHash = db.ReadLastHash()
+	resChain.Height = db.ReadBlockWithHash(resChain.LastHash).Index + 1
 
 	return resChain
 }
@@ -91,10 +90,11 @@ func (bc *BlockChain) AddBlock(txns []*types.Transaction) {
 func (bc *BlockChain) saveNewLastBlock(newBlock *types.Block) {
 
 	// Update DB
-	bc.ChainDB.SaveNewLastBlock(newBlock)
+	bc.ChainDB.WriteNewLastBlock(newBlock)
 
 	// Update chain
 	bc.LastHash = newBlock.Hash
+	bc.UpdateUTXOSet(newBlock)
 
 }
 
@@ -106,13 +106,12 @@ func createGenesisBlock(address string) *types.Block {
 	return types.InitBlock([]*types.Transaction{cbtx}, []byte{}, -1) // prevHash empty
 }
 
-/*GetUTXOs gets the utxos that are owned by pubKeyHash
-@params pubKeyHash - the pubKeyHash in question
-@return a map of txID -> utxoIdx
+/*GetUTXO gets the all the utxos in the chain
+@return a map of txID -> TxOutputs
 */
-func (bc *BlockChain) GetUTXOs(pubKeyHash []byte) map[string][]int {
-	UTXOs := make(map[string][]int)
-	spentTXOs := make(map[string][]int)
+func (bc *BlockChain) GetUTXO() map[string]types.TxOutputs {
+	UTXO := make(map[string]types.TxOutputs)
+	spentTXO := make(map[string][]int)
 	iter := bc.Iterator()
 
 	for {
@@ -124,25 +123,22 @@ func (bc *BlockChain) GetUTXOs(pubKeyHash []byte) map[string][]int {
 			// Txos in first block in question are all unspent
 		Outputs:
 			for outIdx, txo := range tx.Outputs {
-				if spentTXOs[txID] != nil {
-					for _, spentOutIdx := range spentTXOs[txID] {
+				if spentTXO[txID] != nil {
+					for _, spentOutIdx := range spentTXO[txID] {
 						if spentOutIdx == outIdx {
 							continue Outputs // continue if this txo idx is already in the map for this txID
 						}
 					}
 				}
-				if txo.IsLockedWithKey(pubKeyHash) {
-					txoIdxs := UTXOs[txID]
-					txoIdxs = append(txoIdxs, outIdx)
-					UTXOs[txID] = txoIdxs
-				}
-
+				txos := UTXO[txID]
+				txos.Outputs = append(txos.Outputs, txo)
+				UTXO[txID] = txos
 			}
 
 			if !tx.IsCoinbase() {
 				for _, txin := range tx.Inputs {
 					txID := hex.EncodeToString(txin.TxID)
-					spentTXOs[txID] = append(spentTXOs[txID], txin.OutputIdx) // add the txo idx to the map if the pubKeyHash has a txin w/ reference
+					spentTXO[txID] = append(spentTXO[txID], txin.OutputIdx) // add the txo idx to the map if the pubKeyHash has a txin w/ reference
 				}
 			}
 		}
@@ -152,40 +148,7 @@ func (bc *BlockChain) GetUTXOs(pubKeyHash []byte) map[string][]int {
 		}
 	}
 
-	return UTXOs
-}
-
-/*GetSpendableOutputs gets utxos owned by a pub key hash with a total balance up to a given amount
-@param pubKeyHash - the pub key hash in question
-@param max - the max value to compute to
-@return map - the utxos
-@return int - the balance
-*/
-func (bc *BlockChain) GetSpendableOutputs(pubKeyHash []byte, max int) (map[string][]int, int) {
-	UTXOs := bc.GetUTXOs(pubKeyHash)
-	spendableUTXOs := make(map[string][]int)
-	balance := 0
-
-	for txID, txoIdxs := range UTXOs {
-		for _, txoIdx := range txoIdxs {
-			id, _ := hex.DecodeString(txID)
-			tx, err := bc.GetTransactionWithID(id)
-			errutil.HandleErr(err)
-			for i, txo := range tx.Outputs {
-				if i == txoIdx {
-					sputxos := spendableUTXOs[txID]
-					sputxos = append(sputxos, txoIdx)
-					spendableUTXOs[txID] = sputxos
-					balance += txo.Amount
-
-					if balance > max {
-						break
-					}
-				}
-			}
-		}
-	}
-	return spendableUTXOs, balance
+	return UTXO
 }
 
 /*CreateTransaction makes a new Transaction to be added to a Block
@@ -197,11 +160,11 @@ func (bc *BlockChain) GetSpendableOutputs(pubKeyHash []byte, max int) (map[strin
 func (bc *BlockChain) CreateTransaction(from, to string, amount int) *types.Transaction {
 	// Get wallet info using address
 	wallets, err := wallet.InitWallets()
-	errutil.HandleErr(err)
+	errutil.Handle(err)
 	w := wallets.GetWallet(from)
 	pubKeyHash := wallet.HashPubKey(w.PublicKey)
 
-	utxos, txoSum := bc.GetSpendableOutputs(pubKeyHash, amount)
+	utxos, txoSum := bc.GetUTXOByPubKey(pubKeyHash, amount)
 	newTx := types.CreateTransaction(from, to, pubKeyHash, amount, txoSum, utxos)
 	bc.SignTransaction(newTx, w.PrivateKey)
 	return newTx
@@ -216,7 +179,7 @@ func (bc *BlockChain) SignTransaction(tx *types.Transaction, privKey ecdsa.Priva
 
 	for _, txin := range tx.Inputs {
 		prevTx, err := bc.GetTransactionWithID(txin.TxID)
-		errutil.HandleErr(err)
+		errutil.Handle(err)
 		prevTxs[hex.EncodeToString(prevTx.ID)] = prevTx
 	}
 
@@ -236,7 +199,7 @@ func (bc *BlockChain) VerifyTransaction(tx *types.Transaction) bool {
 
 	for _, txin := range tx.Inputs {
 		prevTx, err := bc.GetTransactionWithID(txin.TxID)
-		errutil.HandleErr(err)
+		errutil.Handle(err)
 		prevTxs[hex.EncodeToString(prevTx.ID)] = prevTx
 	}
 

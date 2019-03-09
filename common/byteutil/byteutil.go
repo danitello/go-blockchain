@@ -16,7 +16,7 @@ func Serialize(class interface{}) []byte {
 
 	encoder := gob.NewEncoder(&result)
 	err := encoder.Encode(class)
-	errutil.HandleErr(err)
+	errutil.Handle(err)
 
 	return result.Bytes()
 }

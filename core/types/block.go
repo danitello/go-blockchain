@@ -138,7 +138,7 @@ func DeserializeBlock(data []byte) *Block {
 
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 	err := decoder.Decode(&block)
-	errutil.HandleErr(err)
+	errutil.Handle(err)
 
 	return &block
 }

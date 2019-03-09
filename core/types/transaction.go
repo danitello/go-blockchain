@@ -58,7 +58,7 @@ func CreateTransaction(from, to string, pubKeyHash []byte, amount, txoSum int, u
 	// New inputs for this Transaction
 	for txID, utxoIdxs := range utxos {
 		txID, err := hex.DecodeString(txID)
-		errutil.HandleErr(err)
+		errutil.Handle(err)
 
 		for _, utxoIdx := range utxoIdxs {
 			newInputs = append(newInputs, TxInput{txID, utxoIdx, nil, pubKeyHash}) // map outputs being spent by TxInputs
@@ -100,7 +100,7 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTxs map[string]Transac
 		txCopy.ID = txCopy.Hash()
 
 		r, s, err := ecdsa.Sign(rand.Reader, &privKey, txCopy.ID)
-		errutil.HandleErr(err)
+		errutil.Handle(err)
 		signature := append(r.Bytes(), s.Bytes()...)
 
 		tx.Inputs[txinID].Signature = signature // now update the actual tx
