@@ -1,4 +1,7 @@
 # go-blockchain
+
+[![Build Status](https://travis-ci.org/danitello/go-blockchain.svg?branch=master)](https://travis-ci.org/danitello/go-blockchain)
+
 Blockchain implementation secured by proof of work
 
 ```
