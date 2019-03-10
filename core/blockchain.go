@@ -94,7 +94,8 @@ func (bc *BlockChain) saveNewLastBlock(newBlock *types.Block) {
 
 	// Update chain
 	bc.LastHash = newBlock.Hash
-	bc.UpdateUTXOSet(newBlock)
+	//bc.UpdateUTXOSet(newBlock)
+	bc.Reindex()
 
 }
 
@@ -164,7 +165,7 @@ func (bc *BlockChain) CreateTransaction(from, to string, amount int) *types.Tran
 	w := wallets.GetWallet(from)
 	pubKeyHash := wallet.HashPubKey(w.PublicKey)
 
-	utxos, txoSum := bc.GetUTXOByPubKey(pubKeyHash, amount)
+	utxos, txoSum := bc.GetUTXOWithPubKey(pubKeyHash, amount)
 	newTx := types.CreateTransaction(from, to, pubKeyHash, amount, txoSum, utxos)
 	bc.SignTransaction(newTx, w.PrivateKey)
 	return newTx

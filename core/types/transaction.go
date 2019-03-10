@@ -120,7 +120,7 @@ func (tx *Transaction) Verify(prevTxs map[string]Transaction) bool {
 
 	for _, txin := range tx.Inputs {
 		if prevTxs[hex.EncodeToString(txin.TxID)].ID == nil {
-			log.Panic("ERROR: tx.Verify cannot find previous txn with ID")
+			log.Panic("ERROR: tx.Verify cannot find previous txn with ID", prevTxs[hex.EncodeToString(txin.TxID)].ID)
 		}
 	}
 

@@ -9,6 +9,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/danitello/go-blockchain/common/byteutil"
+
 	"github.com/danitello/go-blockchain/common/errutil"
 	"github.com/danitello/go-blockchain/common/hexutil"
 )
@@ -108,25 +110,24 @@ func (b *Block) computeHash(print bool) ([32]byte, big.Int) {
 @return a [][]byte containing the final data
 */
 func (b *Block) compileProofData() []byte {
-	return bytes.Join([][]byte{b.PrevHash, b.hashTransactions(), hexutil.ToHex(int64(b.Nonce)), hexutil.ToHex(int64(b.Difficulty))}, []byte{})
+	return bytes.Join([][]byte{b.PrevHash, b.getMerkleTree(), hexutil.ToHex(int64(b.Nonce)), hexutil.ToHex(int64(b.Difficulty))}, []byte{})
 }
 
-/*hashTransactions creates a hashed representation of the Transactions in a Block
-@return the hash
+/*getMerkleTree gets the MerkleTree representation of the Transactions in the Block
+@return the MerkleTree root
 */
-func (b *Block) hashTransactions() []byte {
-	var txHashes [][]byte
-	var resHash [32]byte
+func (b *Block) getMerkleTree() []byte {
+	var txs [][]byte
 
 	// Get hash of each tx
 	for _, tx := range b.Transactions {
-		txHashes = append(txHashes, tx.ID)
+		txs = append(txs, byteutil.Serialize(tx))
 	}
 
-	// Get final hash
-	resHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+	// Create MerkleTree
+	tree := InitMerkleTree(txs)
 
-	return resHash[:]
+	return tree.Root.Data
 }
 
 /*DeserializeBlock converts a []byte into a Block for database compatibility

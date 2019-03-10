@@ -129,15 +129,16 @@ func (bc *BlockChain) UpdateUTXOSet(block *types.Block) {
 		return nil
 	})
 	errutil.Handle(err)
+	bc.Reindex()
 }
 
-/*GetUTXOByPubKey gets utxos owned by a pub key hash with a total balance up to a given amount
+/*GetUTXOWithPubKey gets utxos owned by a pub key hash with a total balance up to a given amount
 @param pubKeyHash - the pub key hash in question
 @param max - the max value to search up to
 @return map - the utxos
 @return int - the balance
 */
-func (bc *BlockChain) GetUTXOByPubKey(pubKeyHash []byte, max int) (map[string][]int, int) {
+func (bc *BlockChain) GetUTXOWithPubKey(pubKeyHash []byte, max int) (map[string][]int, int) {
 	UTXO := make(map[string][]int)
 	balance := 0
 

@@ -116,7 +116,7 @@ func Run() {
 
 		amt, err := strconv.Atoi(*sendCommandAmount)
 		errutil.Handle(err)
-		sendTransaction(*sendCommandFrom, *sendCommandTo, amt)
+		send(*sendCommandFrom, *sendCommandTo, amt)
 	}
 
 }
@@ -143,7 +143,7 @@ func getBalance(address string) {
 
 	pubKeyHash := wallet.GetPubKeyHashFromAddress(address)
 
-	_, balance := bc.GetUTXOByPubKey(pubKeyHash, math.MaxInt32)
+	_, balance := bc.GetUTXOWithPubKey(pubKeyHash, math.MaxInt32)
 
 	fmt.Printf("Balance of %s: %d\n", address, balance)
 }
@@ -155,7 +155,8 @@ func createWallet() {
 	ws.SaveToFile()
 }
 
-/*initChain initializes a new BlockChain */
+/*initChain initializes a new BlockChain
+@param address - wallet address to init chain and receieve first coinbase*/
 func initChain(address string) {
 	if !wallet.ValidateAddress(address) {
 		log.Panic("Invalid address")
@@ -211,12 +212,12 @@ func reindex() {
 	fmt.Printf("Reindex complete! There are %d transactions in the UTXO set.\n", count)
 }
 
-/*sendTransaction initiates the addition of a Transaction to the chain
+/*send initiates the addition of a Transaction to the chain
 @param from - the sender
 @param to - the recipient
 @param amount - amount to send
 */
-func sendTransaction(from, to string, amount int) {
+func send(from, to string, amount int) {
 	if !wallet.ValidateAddress(from) {
 		log.Panic("Invalid from address")
 	}
@@ -226,6 +227,6 @@ func sendTransaction(from, to string, amount int) {
 	var txns []*types.Transaction
 	bc := core.GetBlockChain()
 	defer bc.ChainDB.CloseDB()
-	txns = append(txns, bc.CreateTransaction(from, to, amount))
+	txns = append(txns, types.CoinbaseTx(from), bc.CreateTransaction(from, to, amount))
 	bc.AddBlock(txns)
 }

@@ -18,6 +18,7 @@ type TxOutput struct {
 	PubKeyHash []byte
 }
 
+/*TxOutputs groups txos (for serialization) */
 type TxOutputs struct {
 	Outputs []TxOutput
 }
