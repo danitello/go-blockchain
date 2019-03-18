@@ -17,7 +17,7 @@ import (
 	"github.com/danitello/go-blockchain/core/types"
 )
 
-/*Run starts the cli and processes the args*/
+// Run starts the cli and processes the args
 func Run() {
 	// Check if there are args (first arg is the "main" subcommand)
 	if len(os.Args) < 2 {
@@ -121,7 +121,7 @@ func Run() {
 
 }
 
-/*addressList iterates through current Wallets and prints each Wallet address */
+// addressList iterates through current Wallets and prints each Wallet address
 func addressList() {
 	ws, _ := wallet.InitWallets()
 	addresses := ws.GetAddresses()
@@ -130,9 +130,7 @@ func addressList() {
 	}
 }
 
-/*getBalance prints the balance of the given address
-@param address - the address in question
-*/
+// getBalance prints the balance of the given address
 func getBalance(address string) {
 	if !wallet.ValidateAddress(address) {
 		log.Panic("Invalid address")
@@ -148,15 +146,14 @@ func getBalance(address string) {
 	fmt.Printf("Balance of %s: %d\n", address, balance)
 }
 
-/*createWallet instantiates current Wallets and adds a new Wallet to it, then prints out the address */
+// createWallet instantiates current Wallets and adds a new Wallet to it, then prints out the address
 func createWallet() {
 	ws, _ := wallet.InitWallets()
 	fmt.Println(ws.CreateWallet())
 	ws.SaveToFile()
 }
 
-/*initChain initializes a new BlockChain
-@param address - wallet address to init chain and receieve first coinbase*/
+// initChain initializes a new BlockChain with a given address
 func initChain(address string) {
 	if !wallet.ValidateAddress(address) {
 		log.Panic("Invalid address")
@@ -165,8 +162,7 @@ func initChain(address string) {
 	defer bc.ChainDB.CloseDB()
 }
 
-/*printChain prints the chain from newest to oldest Block
- */
+// printChain prints the chain from newest to oldest Block
 func printChain() {
 	bc := core.GetBlockChain()
 	iter := bc.Iterator()
@@ -191,7 +187,7 @@ func printChain() {
 	}
 }
 
-/*printHelp prints the instructions for the cli */
+// printHelp prints the instructions for the cli
 func printHelp() {
 	fmt.Println("Usage: go run main.go <command>")
 	fmt.Println()
@@ -202,7 +198,7 @@ func printHelp() {
 
 }
 
-/*reindex reindexes UTXO set */
+// reindex reindexes UTXO set
 func reindex() {
 	bc := core.GetBlockChain()
 	defer bc.ChainDB.CloseDB()
@@ -212,11 +208,7 @@ func reindex() {
 	fmt.Printf("Reindex complete! There are %d transactions in the UTXO set.\n", count)
 }
 
-/*send initiates the addition of a Transaction to the chain
-@param from - the sender
-@param to - the recipient
-@param amount - amount to send
-*/
+// send initiates the addition of a Transaction to the chain given a sender, reciever, and amount
 func send(from, to string, amount int) {
 	if !wallet.ValidateAddress(from) {
 		log.Panic("Invalid from address")

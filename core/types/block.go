@@ -10,20 +10,18 @@ import (
 	"time"
 
 	"github.com/danitello/go-blockchain/common/byteutil"
-
 	"github.com/danitello/go-blockchain/common/errutil"
 	"github.com/danitello/go-blockchain/common/hexutil"
 )
 
-/*Block is a block in the blockchain
-@param Index - index of this Block in the BlockChain
-@param Nonce - integer that completes hash of Block for successful signing
-@param Difficulty - determines the target value to sign the Block
-@param Hash - the hash of this block
-@param PrevHash - the hash of the previous Block
-@param TimeStamp - the time this Blocks proof
-@param Transactions - the transactions contained in this Block
-*/
+// Block is a block in the blockchain with
+// Index - index of this Block in the BlockChain
+// Nonce - integer that completes hash of Block for successful signing
+// Difficulty - determines the target value to sign the Block
+// Hash - the hash of this block
+// PrevHash - the hash of the previous Block
+// TimeStamp - the time this Blocks proof
+// Transactions - the transactions contained in this Block
 type Block struct {
 	Index        int
 	Nonce        int
@@ -34,12 +32,7 @@ type Block struct {
 	Transactions []*Transaction
 }
 
-/*InitBlock initializes a new Block
-@param txns - the Transactions to be contained in the Block
-@param prevHash - the hash of the previous Block in the chain
-@param prevIndex - the index of the previous Block in the chain
-@return a new Block
-*/
+// InitBlock initializes a new Block
 func InitBlock(txns []*Transaction, prevHash []byte, prevIndex int) *Block {
 	newBlock := &Block{
 		Index:        prevIndex + 1,
@@ -53,7 +46,7 @@ func InitBlock(txns []*Transaction, prevHash []byte, prevIndex int) *Block {
 	return newBlock
 }
 
-/*runProof creates a new proof for the given Block, adding it's Hash and Nonce metadata */
+// runProof creates a new proof for the given Block, adding it's Hash and Nonce metadata
 func (b *Block) runProof() {
 	target := new(big.Int).Lsh(big.NewInt(1), uint(256-b.Difficulty)) // Left shift, 256 is number of bits in a hash
 	var hash [32]byte
@@ -76,10 +69,8 @@ func (b *Block) runProof() {
 	fmt.Println("New block signed")
 }
 
-/*ValidateProof confirms that a given Block has been signed correctly and thus is a valid Block in the BlockChain
-using the Nonce that has been computed for it
-@return whether the Block has been signed correctly or not
-*/
+// ValidateProof confirms that a given Block has been signed correctly and thus is a valid Block in the BlockChain
+// using the Nonce that has been computed for it
 func (b *Block) ValidateProof() bool {
 	var bigIntHash big.Int
 	_, bigIntHash = b.computeHash(false)
@@ -89,11 +80,7 @@ func (b *Block) ValidateProof() bool {
 	return bigIntHash.Cmp(target) == -1
 }
 
-/*computeHash calculates the Hash for the given Block
-@param print - whether to print outputs
-@return *[32]byte version of hash
-@return *big.Int version of hash
-*/
+// computeHash calculates the Hash for the given Block
 func (b *Block) computeHash(print bool) ([32]byte, big.Int) {
 	var bigIntHash big.Int
 
@@ -106,20 +93,16 @@ func (b *Block) computeHash(print bool) ([32]byte, big.Int) {
 	return hash, bigIntHash
 }
 
-/*compileProofData creates the comprehensive data slice that will be hashed during the POW
-@return a [][]byte containing the final data
-*/
+// compileProofData creates the comprehensive data slice that will be hashed during the POW
 func (b *Block) compileProofData() []byte {
 	return bytes.Join([][]byte{b.PrevHash, b.getMerkleTree(), hexutil.ToHex(int64(b.Nonce)), hexutil.ToHex(int64(b.Difficulty))}, []byte{})
 }
 
-/*getMerkleTree gets the MerkleTree representation of the Transactions in the Block
-@return the MerkleTree root
-*/
+// getMerkleTree gets the MerkleTree representation of the Transactions in the Block and returns the root
 func (b *Block) getMerkleTree() []byte {
 	var txs [][]byte
 
-	// Get hash of each tx
+	// Get txs
 	for _, tx := range b.Transactions {
 		txs = append(txs, byteutil.Serialize(tx))
 	}
@@ -130,10 +113,7 @@ func (b *Block) getMerkleTree() []byte {
 	return tree.Root.Data
 }
 
-/*DeserializeBlock converts a []byte into a Block for database compatibility
-@param data - the []byte representation of a Block
-@returns a types.Block representation of a Block
-*/
+// DeserializeBlock converts a []byte into a Block for database compatibility
 func DeserializeBlock(data []byte) *Block {
 	var block Block
 

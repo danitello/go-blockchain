@@ -19,27 +19,19 @@ const (
 	version = byte(0x00)
 )
 
-/*Wallet is the entity for ownership on the chain
-@param PrivateKey - secret ownership identifier for signature
-@param PublicKey - shareable identifier for signature
-*/
+// Wallet is the entity for ownership on the chain
 type Wallet struct {
 	PrivateKey ecdsa.PrivateKey
 	PublicKey  []byte
 }
 
-/*InitWallet initializes a new Wallet
-@return the Wallet
-*/
+// InitWallet initializes a new Wallet
 func InitWallet() *Wallet {
 	priv, pub := createKeyPair()
 	return &Wallet{priv, pub}
 }
 
-/*createKeyPair makes a new priv and pub key pair
-@return ecdsa.PrivateKey - ecdsa priv key
-@return []byte - derived pub key
-*/
+// createKeyPair makes a new priv and pub key pair
 func createKeyPair() (ecdsa.PrivateKey, []byte) {
 	curve := elliptic.P256()
 	privKey, err := ecdsa.GenerateKey(curve, rand.Reader)
@@ -50,10 +42,7 @@ func createKeyPair() (ecdsa.PrivateKey, []byte) {
 	return *privKey, pubKey
 }
 
-/*GetAddress derives the human readable address for a Wallet using pub key hash, version, and checksum (bitcoin spec)
-@param w - Wallet in question
-@return the address
-*/
+// GetAddress derives the human readable address for a Wallet using pub key hash, version, and checksum (bitcoin spec)
 func (w Wallet) GetAddress() []byte {
 	pubKeyHash := HashPubKey(w.PublicKey)
 
@@ -64,10 +53,7 @@ func (w Wallet) GetAddress() []byte {
 	return walletutil.Base58Encode(fullHash)
 }
 
-/*ValidateAddress determines if a given address is correctly constructed
-@param address - the address in question
-@return whether it is valid
-*/
+// ValidateAddress determines if a given address is correctly constructed
 func ValidateAddress(address string) bool {
 	decodedAddress := walletutil.Base58Decode([]byte(address))
 
@@ -78,10 +64,7 @@ func ValidateAddress(address string) bool {
 
 }
 
-/*HashPubKey computes the pub key hash
-@param pubKey - pub key
-@return the pub key hash
-*/
+// HashPubKey computes the pub key hash
 func HashPubKey(pubKey []byte) []byte {
 	shaPubKey := sha256.Sum256(pubKey)
 
@@ -94,10 +77,7 @@ func HashPubKey(pubKey []byte) []byte {
 
 }
 
-/*checksum computes the checksum of a given payload
-@param payload - to checksum
-@return the checksum
-*/
+// checksum computes the checksum of a given payload
 func checksum(payload []byte) []byte {
 	firstSHA := sha256.Sum256(payload)
 	secondSHA := sha256.Sum256(firstSHA[:])
@@ -105,10 +85,7 @@ func checksum(payload []byte) []byte {
 	return secondSHA[:ChecksumLen]
 }
 
-/*GetPubKeyHashFromAddress takes in an address and returns its pub key hash portion
-@param address - the address in question
-@return the pubKeyHash
-*/
+// GetPubKeyHashFromAddress takes in an address and returns its pub key hash portion
 func GetPubKeyHashFromAddress(address string) []byte {
 	decodedAddress := walletutil.Base58Decode([]byte(address))
 	pubKeyHash := decodedAddress[1 : len(decodedAddress)-ChecksumLen]

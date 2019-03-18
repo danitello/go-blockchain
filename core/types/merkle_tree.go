@@ -1,14 +1,11 @@
 package types
 
-/*MerkleTree holds the root node of the representation */
+// MerkleTree holds the root node of the representation
 type MerkleTree struct {
 	Root *MerkleNode
 }
 
-/*InitMerkleTree creates an instance of a MerkleTree
-@param data - the txns to be merked
-@return the MerkleTree
-*/
+// InitMerkleTree creates an instance of a MerkleTree
 func InitMerkleTree(data [][]byte) *MerkleTree {
 	var nodes []MerkleNode
 

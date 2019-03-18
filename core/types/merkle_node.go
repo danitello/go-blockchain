@@ -2,18 +2,14 @@ package types
 
 import "crypto/sha256"
 
-/*MerkleNode represents one node in a MerkleTree */
+// MerkleNode represents one node in a MerkleTree
 type MerkleNode struct {
 	Left  *MerkleNode
 	Right *MerkleNode
 	Data  []byte
 }
 
-/*InitMerkleNode creates a new instance of a node
-@param left - the node that will be it's left node
-@param right - "" right
-@param data - the txn data that will go in this node
-@return the node */
+// InitMerkleNode creates a new instance of a node
 func InitMerkleNode(left, right *MerkleNode, data []byte) *MerkleNode {
 	node := MerkleNode{}
 

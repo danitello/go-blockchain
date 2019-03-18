@@ -16,24 +16,17 @@ import (
 )
 
 const (
-	/*genesisData is the data that will go into the genesis Block by default */
 	genesisData = "Genesis"
 )
 
-/*BlockChain is a complete blockchain
-@param Height - how many Blocks it has (highest Index + 1)
-@param LastHash - the hash of the most recent Block added to this BlockChain
-@param DB - a badger database instance
-*/
+// BlockChain is a complete blockchain
 type BlockChain struct {
 	Height   int
 	LastHash []byte
 	ChainDB  *chaindb.ChainDB
 }
 
-/*InitBlockChain instantiates a new instance of a BlockChain
-@return the current working BlockChain
-*/
+// InitBlockChain instantiates a new instance of a BlockChain
 func InitBlockChain(address string) *BlockChain {
 
 	db := chaindb.InitDB()
@@ -56,9 +49,7 @@ func InitBlockChain(address string) *BlockChain {
 
 }
 
-/*GetBlockChain gets an existing BlockChain from the database
-@return the BlockChain
-*/
+// GetBlockChain gets an existing BlockChain from the database
 func GetBlockChain() *BlockChain {
 	db := chaindb.InitDB()
 
@@ -75,18 +66,14 @@ func GetBlockChain() *BlockChain {
 	return resChain
 }
 
-/*AddBlock adds a new Block to a given BlockChain
-@param data - the data to be contained in the Block
-*/
+// AddBlock adds a new Block to a given BlockChain
 func (bc *BlockChain) AddBlock(txns []*types.Transaction) {
 	// Create a new block and save it
 	newBlock := types.InitBlock(txns, bc.LastHash, bc.Height-1)
 	bc.saveNewLastBlock(newBlock)
 }
 
-/*saveNewLastBlock saves the new Block to db, and updates BlockChain struct
-@param newBlock - the Block to save
-*/
+// saveNewLastBlock saves the new Block to db, and updates BlockChain struct
 func (bc *BlockChain) saveNewLastBlock(newBlock *types.Block) {
 
 	// Update DB
@@ -99,17 +86,13 @@ func (bc *BlockChain) saveNewLastBlock(newBlock *types.Block) {
 
 }
 
-/*createGenesisBlock creates the first Block
-@return the Block
-*/
+// createGenesisBlock creates the first Block
 func createGenesisBlock(address string) *types.Block {
 	cbtx := types.CoinbaseTx(address)
 	return types.InitBlock([]*types.Transaction{cbtx}, []byte{}, -1) // prevHash empty
 }
 
-/*GetUTXO gets the all the utxos in the chain
-@return a map of txID -> TxOutputs
-*/
+// GetUTXO gets the all the utxos in the chain
 func (bc *BlockChain) GetUTXO() map[string]types.TxOutputs {
 	UTXO := make(map[string]types.TxOutputs)
 	spentTXO := make(map[string][]int)
@@ -152,12 +135,7 @@ func (bc *BlockChain) GetUTXO() map[string]types.TxOutputs {
 	return UTXO
 }
 
-/*CreateTransaction makes a new Transaction to be added to a Block
-@param from - sender
-@param to - recipient
-@param amount - amount to send
-@return the Transaction
-*/
+// CreateTransaction makes a new Transaction to be added to a Block
 func (bc *BlockChain) CreateTransaction(from, to string, amount int) *types.Transaction {
 	// Get wallet info using address
 	wallets, err := wallet.InitWallets()
@@ -171,10 +149,7 @@ func (bc *BlockChain) CreateTransaction(from, to string, amount int) *types.Tran
 	return newTx
 }
 
-/*SignTransaction gathers necessary data and initiates the flow for signing a tx
-@param tx - the tx to sign
-@param privKey - of the signer
-*/
+// SignTransaction gathers necessary data and initiates the flow for signing a tx
 func (bc *BlockChain) SignTransaction(tx *types.Transaction, privKey ecdsa.PrivateKey) {
 	prevTxs := make(map[string]types.Transaction)
 
@@ -187,10 +162,7 @@ func (bc *BlockChain) SignTransaction(tx *types.Transaction, privKey ecdsa.Priva
 	tx.Sign(privKey, prevTxs)
 }
 
-/*VerifyTransaction gathers necessary data and initiates the flow for verifying a tx
-@param tx - the tx
-@return whether it is valid
-*/
+// VerifyTransaction gathers necessary data and initiates the flow for verifying a tx
 func (bc *BlockChain) VerifyTransaction(tx *types.Transaction) bool {
 	if tx.IsCoinbase() {
 		return true
@@ -207,11 +179,7 @@ func (bc *BlockChain) VerifyTransaction(tx *types.Transaction) bool {
 	return tx.Verify(prevTxs)
 }
 
-/*GetTransactionWithID searches the bc for a Transaction with a given ID
-@param id - the id
-@return Transaction - the Transaction
-@return error - any error
-*/
+// GetTransactionWithID searches the bc for a Transaction with a given ID
 func (bc *BlockChain) GetTransactionWithID(id []byte) (types.Transaction, error) {
 	iter := bc.Iterator()
 

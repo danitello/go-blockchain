@@ -1,6 +1,6 @@
 package chaindb
 
-/* Database interfacing */
+// Database interfacing
 
 import (
 	"log"
@@ -11,9 +11,7 @@ import (
 	"github.com/dgraph-io/badger"
 )
 
-/*ChainDB is the database for a BlockChain
-@param database - a badger db instance
-*/
+// ChainDB is the database for a BlockChain
 type ChainDB struct {
 	Database *badger.DB
 }
@@ -26,9 +24,7 @@ const (
 	LastHashKey = "lastHashKey"
 )
 
-/*InitDB instantiates a new ChainDB instance from the specified directory
-@return a pointer to the new db instance
-*/
+// InitDB instantiates a new ChainDB instance from the specified directory
 func InitDB() *ChainDB {
 	opts := badger.DefaultOptions
 	opts.Dir = Dir
@@ -39,9 +35,7 @@ func InitDB() *ChainDB {
 	return &db
 }
 
-/*HasChain determines whether the ChainDB instance has a previously initiated BlockChain
-@return whether it does or not
-*/
+// HasChain determines whether the ChainDB instance has a previously initiated BlockChain
 func (db *ChainDB) HasChain() bool {
 	var exists bool
 	err := db.Database.View(func(txn *badger.Txn) error {
@@ -59,9 +53,7 @@ func (db *ChainDB) HasChain() bool {
 	return exists
 }
 
-/*ReadLastHash gets the hash of the most recent Block in the database
-@return - the hash
-*/
+// ReadLastHash gets the hash of the most recent Block in the database
 func (db *ChainDB) ReadLastHash() (lastHash []byte) {
 	err := db.Database.View(func(txn *badger.Txn) (err error) {
 		item, err := txn.Get([]byte(LastHashKey))
@@ -75,10 +67,7 @@ func (db *ChainDB) ReadLastHash() (lastHash []byte) {
 	return
 }
 
-/*ReadBlockWithHash gets a Block from the database, given it's hash
-@param hash - the hash of the desired Block
-@return - the Block
-*/
+// ReadBlockWithHash gets a Block from the database, given it's hash
 func (db *ChainDB) ReadBlockWithHash(hash []byte) (resBlock *types.Block) {
 	err := db.Database.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(hash))
@@ -94,9 +83,7 @@ func (db *ChainDB) ReadBlockWithHash(hash []byte) (resBlock *types.Block) {
 	return
 }
 
-/*WriteNewLastBlock writes a new Block into the database and updates the last hash value
-@param newBlock - the Block
-*/
+// WriteNewLastBlock writes a new Block into the database and updates the last hash value
 func (db *ChainDB) WriteNewLastBlock(newBlock *types.Block) {
 	err := db.Database.Update(func(txn *badger.Txn) error {
 		err := txn.Set(newBlock.Hash, byteutil.Serialize(newBlock))
@@ -109,7 +96,7 @@ func (db *ChainDB) WriteNewLastBlock(newBlock *types.Block) {
 	errutil.Handle(err)
 }
 
-/*CloseDB closes the badgerdb */
+// CloseDB closes the badgerdb
 func (db *ChainDB) CloseDB() {
 	db.Database.Close()
 }

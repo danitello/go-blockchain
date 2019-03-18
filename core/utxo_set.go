@@ -15,9 +15,9 @@ var (
 	utxoPrefix = []byte("utxo-")
 )
 
-/** utxo_set is additional database functions for BlockChain involving the running collection of current utxos */
+// utxo_set is additional database functions for BlockChain involving the running collection of current utxos
 
-/*Reindex deletes the current UTXOSet and establishes a new one */
+// Reindex deletes the current UTXOSet and establishes a new one
 func (bc *BlockChain) Reindex() {
 	bc.DeleteWithKeyPrefix(utxoPrefix)
 
@@ -38,9 +38,7 @@ func (bc *BlockChain) Reindex() {
 	errutil.Handle(err)
 }
 
-/*DeleteWithKeyPrefix deletes all data whose key is prefixed by a given value
-@param prefix - to delete
-*/
+// DeleteWithKeyPrefix deletes all data whose key is prefixed by a given value
 func (bc *BlockChain) DeleteWithKeyPrefix(prefix []byte) {
 	deleteKeys := func(keysToDelete [][]byte) error {
 		if err := bc.ChainDB.Database.Update(func(txn *badger.Txn) error {
@@ -84,9 +82,7 @@ func (bc *BlockChain) DeleteWithKeyPrefix(prefix []byte) {
 	})
 }
 
-/*UpdateUTXOSet manages adding and deleting tx references in set resulting from new Block
-@param block - containing new Transactions to traverse
-*/
+// UpdateUTXOSet manages adding and deleting tx references in set resulting from new Block
 func (bc *BlockChain) UpdateUTXOSet(block *types.Block) {
 	err := bc.ChainDB.Database.Update(func(txn *badger.Txn) error {
 		for _, tx := range block.Transactions {
@@ -132,12 +128,7 @@ func (bc *BlockChain) UpdateUTXOSet(block *types.Block) {
 	bc.Reindex()
 }
 
-/*GetUTXOWithPubKey gets utxos owned by a pub key hash with a total balance up to a given amount
-@param pubKeyHash - the pub key hash in question
-@param max - the max value to search up to
-@return map - the utxos
-@return int - the balance
-*/
+// GetUTXOWithPubKey gets utxos owned by a pub key hash with a total balance up to a given amount
 func (bc *BlockChain) GetUTXOWithPubKey(pubKeyHash []byte, max int) (map[string][]int, int) {
 	UTXO := make(map[string][]int)
 	balance := 0
@@ -172,9 +163,7 @@ func (bc *BlockChain) GetUTXOWithPubKey(pubKeyHash []byte, max int) (map[string]
 	return UTXO, balance
 }
 
-/*CountUTX gets the number of Transactions with UTXO in them
-@return the number
-*/
+// CountUTX gets the number of Transactions with UTXO in them
 func (bc BlockChain) CountUTX() int {
 	count := 0
 

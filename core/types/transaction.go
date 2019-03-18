@@ -15,37 +15,23 @@ import (
 	"github.com/danitello/go-blockchain/common/errutil"
 )
 
-/*Transaction placed in Blocks
-@param TxID - Transaction ID
-@param TxInput - associated Transaction input
-@param TxOutput - associated Transaction output
-*/
+// Transaction placed in Blocks
 type Transaction struct {
 	ID      []byte
 	Inputs  []TxInput
 	Outputs []TxOutput
 }
 
-/*initTransaction initializes a new Tranaction
-@param TxID - Transaction ID
-@param TxInput - associated Transaction input
-@param TxOutput - associated Transaction output
-@return the Transaction
-*/
+// initTransaction initializes a new Tranaction
 func initTransaction(inputs []TxInput, outputs []TxOutput) *Transaction {
 	tx := Transaction{nil, inputs, outputs}
 	tx.ID = tx.Hash()
 	return &tx
 }
 
-/*CreateTransaction creates a Transaction that will be added to a Block in the BlockChain
-@param from - the sending address
-@param to - the receiving address
-@param amount - the amount being exchanged
-@param txoSum - sum of txos being spent
-@param utxos - map of txIDs and utxoIdxs
-@return the new Transaction
-*/
+// CreateTransaction creates a Transaction that will be added to a Block in the BlockChain -
+// txoSum - sum of txos being spent
+// utxos - map of txIDs and utxoIdxs
 func CreateTransaction(from, to string, pubKeyHash []byte, amount, txoSum int, utxos map[string][]int) *Transaction {
 	var newInputs []TxInput
 	var newOutputs []TxOutput
@@ -76,10 +62,9 @@ func CreateTransaction(from, to string, pubKeyHash []byte, amount, txoSum int, u
 
 }
 
-/*Sign computes the signature for each txin in the tx with ecdsa
-@param privKey - of signer
-@param prevTxs - containing the txos that will be referenced by new txins
-*/
+// Sign computes the signature for each txin in the tx with ecdsa -
+// privKey - of signer
+// prevTxs - containing the txos that will be referenced by new txins
 func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTxs map[string]Transaction) {
 	if tx.IsCoinbase() {
 		return
@@ -109,10 +94,7 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTxs map[string]Transac
 	}
 }
 
-/*Verify determines whether txins were signed correctly
-@param prevTxs - the txs
-@return whether they are valid
-*/
+// Verify determines whether txins were signed correctly
 func (tx *Transaction) Verify(prevTxs map[string]Transaction) bool {
 	if tx.IsCoinbase() {
 		return true
@@ -158,9 +140,7 @@ func (tx *Transaction) Verify(prevTxs map[string]Transaction) bool {
 	return true
 }
 
-/*TrimmedCopy sets the Signature and PubKey fields of all txins to nil as these are unecessary for signing (btc spec)
-@return the trimmed copy
-*/
+// TrimmedCopy sets the Signature and PubKey fields of all txins to nil as these are unecessary for signing (btc spec)
 func (tx *Transaction) TrimmedCopy() Transaction {
 	var inputs []TxInput
 	var outputs []TxOutput
@@ -178,9 +158,7 @@ func (tx *Transaction) TrimmedCopy() Transaction {
 	return txCopy
 }
 
-/*Hash computes the hash of the Transaction
-@return the hash
-*/
+// Hash computes the hash of the Transaction
 func (tx *Transaction) Hash() []byte {
 	var hash [32]byte
 
@@ -192,10 +170,7 @@ func (tx *Transaction) Hash() []byte {
 	return hash[:]
 }
 
-/*CoinbaseTx is the transaction in each Block that rewards the miner
-@param to - address of recipient
-@return the created Transaction
-*/
+// CoinbaseTx is the transaction in each Block that rewards the miner
 func CoinbaseTx(to string) *Transaction {
 	amount := 100
 	txin := TxInput{[]byte{}, -1, nil, []byte(fmt.Sprintf("CoinbaseTx: %d coins to %s", amount, to))} // referencing no output
@@ -204,16 +179,12 @@ func CoinbaseTx(to string) *Transaction {
 	return newTx
 }
 
-/*IsCoinbase determines whether a Transaction is a coinbase tx
-@return whether it's a coinbase tx
-*/
+// IsCoinbase determines whether a Transaction is a coinbase tx
 func (tx *Transaction) IsCoinbase() bool {
 	return len(tx.Inputs) == 1 && len(tx.Inputs[0].TxID) == 0 && tx.Inputs[0].OutputIdx == -1
 }
 
-/*String creates a string containing information to display about the tx
-@return the string
-*/
+// String creates a string containing information to display about the tx
 func (tx Transaction) String() string {
 	var lines []string
 

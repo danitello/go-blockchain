@@ -6,12 +6,11 @@ import (
 	"github.com/danitello/go-blockchain/wallet"
 )
 
-/*TxInput spends (references) a previous TxOutput
-@param TxID - ID of Transaction that the TxOutput resides in
-@param OutputIdx - idx of the TxOutput in the Transaction
-@param Signature - signs the txin as unlocking the txo
-@param PubKey - the pub key used
-*/
+// TxInput spends (references) a previous TxOutput -
+// TxID - ID of Transaction that the TxOutput resides in
+// OutputIdx - idx of the TxOutput in the Transaction
+// Signature - signs the txin as unlocking the txo
+// PubKey - the pub key used
 type TxInput struct {
 	TxID      []byte
 	OutputIdx int
@@ -19,10 +18,7 @@ type TxInput struct {
 	PubKey    []byte
 }
 
-/*UsesKey determines whether the pubKeyHash provided is the owner of the output referenced by txin
-@param pubKeyHash - the pubKeyHash in question
-@return whether it is valid
-*/
+// UsesKey determines whether the pubKeyHash provided is the owner of the output referenced by txin
 func (txin *TxInput) UsesKey(pubKeyHash []byte) bool {
 	lockingHash := wallet.HashPubKey(txin.PubKey)
 
